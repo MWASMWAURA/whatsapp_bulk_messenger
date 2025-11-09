@@ -30,19 +30,19 @@ export function MotionCardContent({
 export default function MotionCards({ children, interval = 2000 }: MotionCardsProps) {
   const contentArray = Children.toArray(children);
   const [cards, setCards] = useState([0, 1, 2, 3, 4]);
-  const [nextId, setNextId] = useState(contentArray.length);
+  const [uniqueIdCounter, setUniqueIdCounter] = useState(5);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
       setCards((prev) => {
         const rest = prev.slice(1);
-        const newCard = nextId;
-        setNextId((id) => id + 1);
+        const newCard = uniqueIdCounter;
+        setUniqueIdCounter((id) => id + 1);
         return [...rest, newCard];
       });
     }, interval);
     return () => clearInterval(intervalId);
-  }, [nextId, interval]);
+  }, [uniqueIdCounter, interval]);
 
   return (
     <div className="flex items-center justify-center relative px-2 h-[480px] overflow-hidden w-full">

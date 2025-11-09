@@ -232,8 +232,19 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => {
-                  const uploadSection = document.querySelector('#upload-section');
-                  uploadSection?.scrollIntoView({ behavior: 'smooth' });
+                  setTableData([
+                    { name: 'John Doe', phone: '+1234567890', email: 'john@example.com' },
+                    { name: 'Jane Smith', phone: '+0987654321', email: 'jane@example.com' },
+                    { name: 'Alice Johnson', phone: '+1122334455', email: 'alice@example.com' },
+                    { name: 'Bob Wilson', phone: '+5566778899', email: 'bob@example.com' },
+                    { name: 'Emma Davis', phone: '+9988776655', email: 'emma@example.com' },
+                  ]);
+                  setTableColumns([
+                    { accessorKey: 'name', header: 'Name' },
+                    { accessorKey: 'phone', header: 'Phone' },
+                    { accessorKey: 'email', header: 'Email' },
+                  ]);
+                  setShowExcelView(true);
                 }}
                 className="bg-white text-green-600 px-6 py-3 md:px-8 md:py-4 rounded-full font-semibold hover:bg-green-50 transition-all text-sm md:text-base shadow-xl hover:shadow-2xl transform hover:scale-105"
               >
@@ -584,32 +595,32 @@ export default function HomePage() {
             {/* Right side - Animated Motion Cards */}
             <div className="lg:w-1/2">
               <MotionCards interval={1500}>
-                <MotionCardContent className="flex gap-3">
+                <MotionCardContent key="real-time-1" className="flex gap-3">
                   <Zap className="w-6 h-6 text-yellow-600" />
                   <span className="font-semibold">Real-time Processing</span>
                 </MotionCardContent>
 
-                <MotionCardContent className="flex gap-3">
+                <MotionCardContent key="mobile-2" className="flex gap-3">
                   <Smartphone className="w-6 h-6 text-indigo-600" />
                   <span className="font-semibold">Mobile-Optimized Interface</span>
                 </MotionCardContent>
 
-                <MotionCardContent className="flex gap-3">
+                <MotionCardContent key="analytics-3" className="flex gap-3">
                   <BarChart3 className="w-6 h-6 text-teal-600" />
                   <span className="font-semibold">Advanced Analytics Dashboard</span>
                 </MotionCardContent>
 
-                <MotionCardContent className="flex gap-3">
+                <MotionCardContent key="templates-4" className="flex gap-3">
                   <Settings className="w-6 h-6 text-orange-600" />
                   <span className="font-semibold">Customizable Templates</span>
                 </MotionCardContent>
 
-                <MotionCardContent className="flex gap-3">
+                <MotionCardContent key="storage-5" className="flex gap-3">
                   <Database className="w-6 h-6 text-cyan-600" />
                   <span className="font-semibold">Cloud Data Storage</span>
                 </MotionCardContent>
 
-                <MotionCardContent className="flex gap-3">
+                <MotionCardContent key="support-6" className="flex gap-3">
                   <HelpCircle className="w-6 h-6 text-pink-600" />
                   <span className="font-semibold">24/7 Customer Support</span>
                 </MotionCardContent>
