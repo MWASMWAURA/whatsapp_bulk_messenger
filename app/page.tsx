@@ -52,7 +52,6 @@ interface ColumnDef {
 export default function HomePage() {
   const [tableData, setTableData] = useState<TableData[]>([]);
   const [tableColumns, setTableColumns] = useState<ColumnDef[]>([]);
-  const [showExcelView, setShowExcelView] = useState(false);
   const [currentPolicyPage, setCurrentPolicyPage] = useState(1);
 
   const policies = [
@@ -117,7 +116,8 @@ export default function HomePage() {
   const handleDataImported = (data: TableData[], columns: ColumnDef[]) => {
     setTableData(data);
     setTableColumns(columns);
-    setShowExcelView(true);
+    // Navigate to spreadsheet page
+    window.location.href = '/spreadsheet';
   };
 
   return (
@@ -244,7 +244,8 @@ export default function HomePage() {
                     { accessorKey: 'phone', header: 'Phone' },
                     { accessorKey: 'email', header: 'Email' },
                   ]);
-                  setShowExcelView(true);
+                  // Navigate to spreadsheet page
+                  window.location.href = '/spreadsheet';
                 }}
                 className="bg-white text-green-600 px-6 py-3 md:px-8 md:py-4 rounded-full font-semibold hover:bg-green-50 transition-all text-sm md:text-base shadow-xl hover:shadow-2xl transform hover:scale-105"
               >
@@ -1053,14 +1054,6 @@ export default function HomePage() {
         </div>
       </footer>
 
-      {/* Excel Spreadsheet View */}
-      {showExcelView && (
-        <ExcelSpreadsheet
-          tableData={tableData}
-          tableColumns={tableColumns}
-          onClose={() => setShowExcelView(false)}
-        />
-      )}
     </div>
   );
 }
