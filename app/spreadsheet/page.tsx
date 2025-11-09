@@ -1,96 +1,58 @@
 "use client";
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/animated-tabs";
+import { SeparatorPro } from "@/components/ui/seperatorpro";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import ProfileCard from "@/components/ui/profilecard";
+import { MessageSquare, Mail, Phone, HelpCircle, Smartphone } from "lucide-react";
 import ExpandableDock from "@/components/ui/expandable-dock";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuPortal,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  Upload,
-  MessageSquare,
-  Users,
-  Zap,
-  Shield,
-  Smartphone,
-  FileText,
-  BarChart3,
-  Settings,
-  HelpCircle,
-  Home,
-  Phone,
-  Mail,
-  Database,
-  ChevronDown,
-  Sparkles,
-  RefreshCw,
-  Search,
-  ChevronsUpDown,
-  Plus,
-} from "lucide-react";
 
-interface TableData {
-  [key: string]: string | number;
+function Label({ children, htmlFor }) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+    >
+      {children}
+    </label>
+  );
 }
 
-interface ExcelSpreadsheetProps {
-  tableData: TableData[];
-  tableColumns: any[];
-  onClose: () => void;
+function Textarea(props) {
+  return (
+    <textarea
+      {...props}
+      className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex min-h-[60px] w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
+    />
+  );
 }
 
-export default function SpreadsheetPage() {
-  const [excelCells, setExcelCells] = useState<{ [key: string]: string }>({});
-  const [selectedExcelCell, setSelectedExcelCell] = useState<string | null>(null);
+export default function IntegratedContentManagement() {
+  const [excelCells, setExcelCells] = useState({});
+  const [selectedExcelCell, setSelectedExcelCell] = useState(null);
+  const [activeTab, setActiveTab] = useState(null);
   const [currentPolicyPage, setCurrentPolicyPage] = useState(1);
-  const [dockExpanded, setDockExpanded] = useState(false);
-  const [selectedNameColumn, setSelectedNameColumn] = useState<string>("");
-  const [selectedPhoneColumn, setSelectedPhoneColumn] = useState<string>("");
-  const [messageTemplate, setMessageTemplate] = useState<string>("");
-  const [isContactsOpen, setIsContactsOpen] = useState(false);
-  const excelInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
-
-  // Mock data for demonstration
-  const tableData: TableData[] = [
-    { name: 'John Doe', phone: '+1234567890', email: 'john@example.com' },
-    { name: 'Jane Smith', phone: '+0987654321', email: 'jane@example.com' },
-    { name: 'Alice Johnson', phone: '+1122334455', email: 'alice@example.com' },
-    { name: 'Bob Wilson', phone: '+5566778899', email: 'bob@example.com' },
-    { name: 'Emma Davis', phone: '+9988776655', email: 'emma@example.com' },
-  ];
-
-  const tableColumns = [
-    { accessorKey: 'name', header: 'Name' },
-    { accessorKey: 'phone', header: 'Phone' },
-    { accessorKey: 'email', header: 'Email' },
-  ];
+  const excelInputRefs = useRef({});
 
   const policies = [
     {
@@ -103,11 +65,11 @@ export default function SpreadsheetPage() {
         },
         {
           heading: "Use License",
-          text: "Permission is granted to temporarily download one copy of the materials on WA Bulk Messenger for personal, non-commercial transitory viewing only."
+          text: "Permission is granted to temporarily download one copy of the materials on WA Bulk Messenger's website for personal, non-commercial transitory viewing only."
         },
         {
           heading: "Disclaimer",
-          text: "The materials on WA Bulk Messenger are provided on an 'as is' basis. WA Bulk Messenger makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights."
+          text: "The materials on WA Bulk Messenger's website are provided on an 'as is' basis. WA Bulk Messenger makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights."
         }
       ]
     },
@@ -120,7 +82,7 @@ export default function SpreadsheetPage() {
           text: "We collect information you provide directly to us, such as when you create an account, use our services, or contact us for support."
         },
         {
-          heading: "How We Use Your Information",
+          heading: "How We Use Information",
           text: "We use the information we collect to provide, maintain, and improve our services, process transactions, and communicate with you."
         },
         {
@@ -149,7 +111,7 @@ export default function SpreadsheetPage() {
     }
   ];
 
-  const currentPolicy = policies.find(p => p.id === currentPolicyPage);
+  const currentPolicy = policies.find(policy => policy.id === currentPolicyPage);
 
   const groupedNavigation = [
     {
@@ -244,43 +206,47 @@ export default function SpreadsheetPage() {
     },
   ];
 
-  useEffect(() => {
-    // Import table data to Excel spreadsheet
-    const newCells: { [key: string]: string } = {};
+  const tableData = [
+    { name: 'John Doe', phone: '+1234567890', email: 'john@example.com' },
+    { name: 'Jane Smith', phone: '+0987654321', email: 'jane@example.com' },
+    { name: 'Alice Johnson', phone: '+1122334455', email: 'alice@example.com' },
+    { name: 'Bob Wilson', phone: '+5566778899', email: 'bob@example.com' },
+    { name: 'Emma Davis', phone: '+9988776655', email: 'emma@example.com' },
+  ];
 
-    // Import column headers (first row)
+  const tableColumns = [
+    { accessorKey: 'name', header: 'Name' },
+    { accessorKey: 'phone', header: 'Phone' },
+    { accessorKey: 'email', header: 'Email' },
+  ];
+
+  useEffect(() => {
+    const newCells = {};
     tableColumns.forEach((col, colIndex) => {
-      if (colIndex < 26) { // Limit to 26 columns (A-Z)
-        newCells[`0-${colIndex}`] = (col as any).header;
+      if (colIndex < 26) {
+        newCells[`0-${colIndex}`] = col.header;
       }
     });
-
-    // Import data rows
     tableData.forEach((row, rowIndex) => {
-      const excelRow = rowIndex + 1; // Start from row 1 (row 0 is headers)
+      const excelRow = rowIndex + 1;
       tableColumns.forEach((col, colIndex) => {
-        if (colIndex < 26 && excelRow < 1000) { // Limit bounds
-          const columnKey = (col as any).accessorKey;
+        if (colIndex < 26 && excelRow < 1000) {
+          const columnKey = col.accessorKey;
           newCells[`${excelRow}-${colIndex}`] = String(row[columnKey] || '');
         }
       });
     });
-
     setExcelCells(newCells);
-  }, []); // Remove dependencies to prevent infinite loop
+  }, []);
 
-  const closeExcelView = () => {
-    window.history.back();
-  };
-
-  const handleExcelCellChange = (row: number, col: number, value: string) => {
+  const handleExcelCellChange = (row, col, value) => {
     setExcelCells(prev => ({
       ...prev,
       [`${row}-${col}`]: value
     }));
   };
 
-  const handleExcelKeyDown = (e: React.KeyboardEvent, row: number, col: number) => {
+  const handleExcelKeyDown = (e, row, col) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       const nextRow = row + 1;
@@ -298,13 +264,75 @@ export default function SpreadsheetPage() {
     }
   };
 
-  const getColumnLabel = (index: number) => {
+  const getColumnLabel = (index) => {
     if (index < 26) return String.fromCharCode(65 + index);
     return String.fromCharCode(64 + Math.floor(index / 26)) + String.fromCharCode(65 + (index % 26));
   };
 
+  const handleOutsideClick = (e) => {
+    if (e.target === e.currentTarget) {
+      setActiveTab(null);
+    }
+  };
+
+  const renderDockContent = () => {
+    return (
+      <div className="space-y-6">
+        {groupedNavigation.map((group, groupIndex) => (
+          <div key={groupIndex} className="space-y-3">
+            <div className="flex items-center gap-3 text-green-400">
+              <group.icon className="w-5 h-5" />
+              <h3 className="text-lg font-semibold">{group.title}</h3>
+            </div>
+            <div className="space-y-2 ml-8">
+              {group.children.map((item, itemIndex) => (
+                <div key={itemIndex} className="bg-gray-800/50 rounded-lg p-4 hover:bg-gray-800/70 transition-colors cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-white font-medium">{item.title}</h4>
+                      <p className="text-gray-300 text-sm">{item.description}</p>
+                    </div>
+                    {'category' in item && item.category && (
+                        <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                          {item.category}
+                        </span>
+                      )}
+                  </div>
+                  {item.content && item.content.type === "text" && (
+                    <div className="mt-3 text-gray-200 text-sm whitespace-pre-line">
+                      {item.content.data}
+                    </div>
+                  )}
+                  {item.content && item.content.type === "list" && item.content.data && Array.isArray(item.content.data) && (
+                    <div className="mt-3 space-y-2">
+                      {item.content.data.map((listItem: any, listIndex: number) => (
+                        <div key={listIndex} className="text-gray-200 text-sm">
+                          <strong className="text-green-400">{listItem.issue}:</strong> {listItem.solution}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {item.content && item.content.type === "qr_scanner" && (
+                    <div className="mt-3 text-center">
+                      <div className="bg-white p-4 rounded-lg inline-block">
+                        <div className="w-32 h-32 bg-gray-200 flex items-center justify-center text-gray-600 text-xs">
+                          QR Code Placeholder
+                        </div>
+                      </div>
+                      <p className="text-gray-300 text-sm mt-2">Scan this QR code with WhatsApp on your phone</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100" onClick={handleOutsideClick}>
       {/* Expandable Dock */}
       <ExpandableDock
         headerContent={
@@ -363,7 +391,6 @@ export default function SpreadsheetPage() {
           </div>
         </div>
       </ExpandableDock>
-
       {/* Top Area - Spreadsheet */}
       <div className="bg-white">
         <div className="bg-green-700 text-white px-4 py-2 font-semibold text-sm flex items-center justify-between">
@@ -371,7 +398,6 @@ export default function SpreadsheetPage() {
           <div className="flex items-center gap-2">
             <span className="text-xs">Tab to move • Enter for next row</span>
             <Button
-              onClick={closeExcelView}
               variant="outline"
               size="sm"
               className="bg-white/20 hover:bg-white/30 text-white border-white/30"
@@ -394,7 +420,7 @@ export default function SpreadsheetPage() {
               </tr>
             </thead>
             <tbody>
-              {Array.from({ length: Math.max(100, Object.keys(excelCells).length > 0 ? Math.max(...Object.keys(excelCells).map(key => parseInt(key.split('-')[0]))) + 50 : 100) }, (_, row) => (
+              {Array.from({ length: 100 }, (_, row) => (
                 <tr key={row}>
                   <td className="bg-gray-200 border border-gray-400 text-xs font-semibold text-center p-1 sticky left-0 z-10">
                     {row + 1}
@@ -425,566 +451,604 @@ export default function SpreadsheetPage() {
       </div>
 
       {/* Content Area */}
-      <div className="bg-white">
+      <div className="bg-gradient-to-r from-orange-100 to-green-100">
         <div className="p-8">
-           <h1 className="text-3xl font-bold mb-4 text-gray-800">Contact Management</h1>
-           <p className="text-gray-600 mb-6">
-             Your imported contacts are now in the Excel-like spreadsheet above. You can edit, add, or modify any contact information directly in the cells.
-           </p>
+          <h1 className="text-3xl font-bold mb-4 text-gray-800">Contact Management</h1>
+          <p className="text-gray-600 mb-6">
+            Your imported contacts are now in the Excel-like spreadsheet above. You can edit, add, or modify any contact information directly in the cells.
+          </p>
 
-           <div className="grid grid-cols-2 gap-8">
-             {/* Left side - Features and Tips */}
-             <div className="space-y-4">
-               <div className="bg-gray-50 rounded-lg shadow p-6">
-                 <h2 className="text-xl font-semibold mb-3 text-gray-700">Spreadsheet Features</h2>
-                 <ul className="space-y-2 text-gray-600">
-                   <li>• 100 rows × 26 columns (A-Z)</li>
-                   <li>• Fully editable cells</li>
-                   <li>• Keyboard navigation support</li>
-                   <li>• Excel-like visual design</li>
-                   <li>• Sticky headers for easy reference</li>
-                 </ul>
-               </div>
-
-               <div className="bg-gray-50 rounded-lg shadow p-6">
-                 <h2 className="text-xl font-semibold mb-3 text-gray-700">Keyboard Shortcuts</h2>
-                 <ul className="space-y-2 text-gray-600">
-                   <li>• <strong>Tab</strong> - Move to next cell (right)</li>
-                   <li>• <strong>Shift + Tab</strong> - Move to previous cell (left)</li>
-                   <li>• <strong>Enter</strong> - Move to cell below</li>
-                   <li>• Click any cell to start editing</li>
-                 </ul>
-               </div>
-
-               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                 <h3 className="text-lg font-semibold mb-2 text-blue-900">💡 Tips</h3>
-                 <p className="text-blue-800 mb-2">
-                   Your contact data has been imported with column headers in row 1. You can now:
-                 </p>
-                 <ul className="text-blue-800 space-y-1">
-                   <li>• Edit any contact information directly in the cells</li>
-                   <li>• Add new contacts by editing empty rows</li>
-                   <li>• Use the drag handle above to resize the spreadsheet view</li>
-                   <li>• All changes are saved automatically</li>
-                 </ul>
-               </div>
-             </div>
-
-             {/* Right side - Message Template and Contact Selection */}
-             <div className="space-y-4">
-               <div className="bg-white border border-gray-200 rounded-lg shadow p-6">
-                 <h2 className="text-xl font-semibold mb-4 text-gray-700">Create Message Template</h2>
-
-                 <div className="space-y-4">
-                   <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                       Message Content
-                     </label>
-                     <textarea
-                       className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                       placeholder="Enter your message template. Use {{name}} for personalization..."
-                       value={messageTemplate}
-                       onChange={(e) => setMessageTemplate(e.target.value)}
-                       rows={4}
-                     />
-                   </div>
-
-                   <div className="grid grid-cols-2 gap-4">
-                     <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                         Name Column
-                       </label>
-                       <select
-                         className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                         value={selectedNameColumn}
-                         onChange={(e) => setSelectedNameColumn(e.target.value)}
-                       >
-                         <option value="">Select column...</option>
-                         {tableColumns.map((col: any, idx: number) => (
-                           <option key={idx} value={col.accessorKey}>
-                             {col.header} ({col.accessorKey})
-                           </option>
-                         ))}
-                       </select>
-                     </div>
-
-                     <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                         Phone Column
-                       </label>
-                       <select
-                         className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                         value={selectedPhoneColumn}
-                         onChange={(e) => setSelectedPhoneColumn(e.target.value)}
-                       >
-                         <option value="">Select column...</option>
-                         {tableColumns.map((col: any, idx: number) => (
-                           <option key={idx} value={col.accessorKey}>
-                             {col.header} ({col.accessorKey})
-                           </option>
-                         ))}
-                       </select>
-                     </div>
-                   </div>
-
-                   <Button
-                     className="w-full bg-green-600 hover:bg-green-700"
-                     onClick={() => {
-                       toast.success("Message template created successfully!");
-                     }}
-                   >
-                     <Plus className="w-4 h-4 mr-2" />
-                     Save Template
-                   </Button>
-                 </div>
-               </div>
-
-               {/* Message Preview */}
-               <div className="bg-white border border-gray-200 rounded-lg shadow p-6">
-                 <h3 className="text-lg font-semibold mb-4 text-gray-700">Message Preview</h3>
-                 <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
-                   {messageTemplate ? (
-                     <div>
-                       <div className="text-sm text-gray-600 mb-2">
-                         <strong>Sample Message:</strong>
-                       </div>
-                       <div className="bg-white border border-gray-200 rounded-lg p-3 text-sm text-gray-800 leading-relaxed">
-                         {messageTemplate.replace(/\{\{(\w+)\}\}/g, (match, columnName) => {
-                           // Find the column and get the first row's value
-                           const column = tableColumns.find((col: any) => col.accessorKey === columnName);
-                           if (column && tableData.length > 0) {
-                             return String(tableData[0][columnName] || `{{${columnName}}}`);
-                           }
-                           return match;
-                         })}
-                       </div>
-                       <div className="text-xs text-gray-500 mt-2">
-                         Preview shows data from the first contact row
-                       </div>
-                     </div>
-                   ) : (
-                     <div className="text-center text-gray-500 py-4">
-                       <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                       <p className="text-sm">Enter a message template above to see preview</p>
-                     </div>
-                   )}
-                 </div>
-               </div>
-
-                 <div className="bg-white border border-gray-200 rounded-lg shadow p-6 relative">
-                   <div className="flex items-center justify-between">
-                     <h3 className="text-lg font-semibold text-gray-700">Select Contacts</h3>
-                     <Button
-                       variant="ghost"
-                       size="sm"
-                       onClick={() => setIsContactsOpen(!isContactsOpen)}
-                     >
-                       <ChevronsUpDown className="h-4 w-4" />
-                       <span className="sr-only">Toggle contacts selection</span>
-                     </Button>
-                   </div>
- 
-                   <div className="mt-2 text-sm text-gray-600">
-                     Choose which column contains contact information for messaging
-                   </div>
- 
-                   {isContactsOpen && (
-                     <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-4">
-                       <div className="space-y-3">
-                         <div className="space-y-2">
-                           <label className="block text-sm font-medium text-gray-700">
-                             Select Contact Range
-                           </label>
-                           <select
-                             className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                             value={selectedPhoneColumn}
-                             onChange={(e) => setSelectedPhoneColumn(e.target.value)}
-                           >
-                             <option value="">Select option...</option>
-                             <option value="all">All Contacts ({tableData.length})</option>
-                             {selectedPhoneColumn && (
-                               <option value={selectedPhoneColumn}>
-                                 Valid Phone Numbers ({tableData.filter(row => row[selectedPhoneColumn]).length})
-                               </option>
-                             )}
-                           </select>
-                         </div>
- 
-                         <div className="pt-2">
-                           <Button
-                             className="w-full bg-blue-600 hover:bg-blue-700"
-                             onClick={() => {
-                               const selectedCount = selectedPhoneColumn === 'all' ? tableData.length :
-                                 selectedPhoneColumn ? tableData.filter(row => row[selectedPhoneColumn]).length : 0;
-                               toast.success(`${selectedCount} contacts selected for messaging!`);
-                               setIsContactsOpen(false);
-                             }}
-                           >
-                             Confirm Selection
-                           </Button>
-                         </div>
-                       </div>
-                     </div>
-                   )}
-                 </div>
-               </div>
-             </div>
-
-           <div className="mt-6 flex items-center justify-between">
-             <div className="text-sm text-gray-600">
-               {tableData.length} contacts imported • Ready for WhatsApp bulk messaging
-             </div>
-             <Button
-               onClick={() => {
-                 toast.success("Campaign message sent successfully!");
-                 closeExcelView();
-               }}
-               className="bg-green-600 hover:bg-green-700"
-             >
-               Send Campaign Message
-             </Button>
-           </div>
-         </div>
-
-
-        {/* Footer */}
-        <footer className="bg-slate-900 text-white py-8 mt-8">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-              {/* Company Info */}
-              <div className="md:col-span-2">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-semibold">WA</div>
-                  <span className="text-xl font-semibold">WA 2 Bulk Messenger</span>
-                </div>
-                <p className="text-slate-300 mb-4 max-w-md">
-                  Transform your contact lists into powerful WhatsApp campaigns. Clean, validate, and send messages to thousands of contacts with ease.
-                </p>
-                <div className="flex space-x-4">
-                  <a href="#" className="text-slate-400 hover:text-green-400 transition-colors">
-                    <MessageSquare className="w-5 h-5" />
-                  </a>
-                  <a href="#" className="text-slate-400 hover:text-green-400 transition-colors">
-                    <Mail className="w-5 h-5" />
-                  </a>
-                  <a href="#" className="text-slate-400 hover:text-green-400 transition-colors">
-                    <Phone className="w-5 h-5" />
-                  </a>
-                </div>
-              </div>
-
-              {/* Product Links */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 text-green-400">Product</h3>
-                <ul className="space-y-2">
-                  <li><a href="#features" className="text-slate-300 hover:text-white transition-colors">Features</a></li>
-                  <li><a href="#pricing" className="text-slate-300 hover:text-white transition-colors">Pricing</a></li>
-                  <li><a href="#templates" className="text-slate-300 hover:text-white transition-colors">Templates</a></li>
-                  <li><a href="#tools" className="text-slate-300 hover:text-white transition-colors">Tools</a></li>
-                </ul>
-              </div>
-
-              {/* Support Links */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 text-green-400">Support</h3>
-                <ul className="space-y-2">
-                  <li>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="text-slate-300 hover:text-white transition-colors text-left">
-                          Help Center
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="space-y-3">
-                          <h4 className="font-semibold text-green-400">Help Center</h4>
-                          <p className="text-sm text-slate-300">
-                            Find answers to frequently asked questions, troubleshooting guides, and best practices for using WA Bulk Messenger effectively.
-                          </p>
-                          <div className="space-y-2">
-                            <p className="text-xs text-slate-400">Common Topics:</p>
-                            <ul className="text-xs text-slate-300 space-y-1 ml-4">
-                              <li>• File upload issues</li>
-                              <li>• Data cleaning tips</li>
-                              <li>• Message delivery problems</li>
-                              <li>• Account settings</li>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left side - Carousel Features */}
+            <div className="flex items-center justify-center">
+              <Carousel className="w-full max-w-xs">
+                <CarouselContent>
+                  <CarouselItem>
+                    <div className="p-1">
+                      <Card>
+                        <CardContent className="flex aspect-square items-center justify-center p-6">
+                          <div className="text-center">
+                            <h2 className="text-xl font-semibold mb-4 text-gray-800">Spreadsheet Features</h2>
+                            <ul className="space-y-2 text-sm text-gray-600">
+                              <li className="text-left">• 100 rows × 26 columns (A-Z)</li>
+                              <li className="text-left">• Fully editable cells</li>
+                              <li className="text-left">• Keyboard navigation support</li>
+                              <li className="text-left">• Excel-like visual design</li>
+                              <li className="text-left">• Sticky headers for easy reference</li>
                             </ul>
                           </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </li>
-                  <li>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="text-slate-300 hover:text-white transition-colors text-left">
-                          Documentation
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="space-y-3">
-                          <h4 className="font-semibold text-green-400">Documentation</h4>
-                          <p className="text-sm text-slate-300">
-                            Comprehensive guides and API documentation for developers and advanced users looking to integrate WA Bulk Messenger.
-                          </p>
-                          <div className="space-y-2">
-                            <p className="text-xs text-slate-400">Available Resources:</p>
-                            <ul className="text-xs text-slate-300 space-y-1 ml-4">
-                              <li>• API Reference</li>
-                              <li>• Integration Guides</li>
-                              <li>• Webhook Documentation</li>
-                              <li>• SDK Downloads</li>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CarouselItem>
+                  <CarouselItem>
+                    <div className="p-1">
+                      <Card>
+                        <CardContent className="flex aspect-square items-center justify-center p-6">
+                          <div className="text-center">
+                            <h2 className="text-xl font-semibold mb-4 text-gray-800">Keyboard Shortcuts</h2>
+                            <ul className="space-y-2 text-sm text-gray-600">
+                              <li className="text-left">• Tab - Move to next cell (right)</li>
+                              <li className="text-left">• Shift + Tab - Move to previous cell (left)</li>
+                              <li className="text-left">• Enter - Move to cell below</li>
+                              <li className="text-left">• Click any cell to start editing</li>
                             </ul>
                           </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </li>
-                  <li>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="text-slate-300 hover:text-white transition-colors text-left">
-                          Contact Us
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="space-y-3">
-                          <h4 className="font-semibold text-green-400">Contact Us</h4>
-                          <p className="text-sm text-slate-300">
-                            Need help? Our support team is here to assist you. Get in touch through multiple channels for personalized assistance.
-                          </p>
-                          <div className="space-y-2">
-                            <p className="text-xs text-slate-400">Contact Methods:</p>
-                            <ul className="text-xs text-slate-300 space-y-1 ml-4">
-                              <li>• support@wabulkmessenger.com</li>
-                              <li>• Live chat (9 AM - 6 PM EST)</li>
-                              <li>• WhatsApp: +1 (555) 123-4567</li>
-                              <li>• Response time: less than 2 hours</li>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CarouselItem>
+                  <CarouselItem>
+                    <div className="p-1">
+                      <Card>
+                        <CardContent className="flex aspect-square items-center justify-center p-6">
+                          <div className="text-center">
+                            <h3 className="text-lg font-semibold mb-2 text-blue-900">💡 Tips</h3>
+                            <p className="text-blue-800 mb-2 text-sm">
+                              Your contact data has been imported with column headers in row 1. You can now:
+                            </p>
+                            <ul className="text-blue-800 space-y-1 text-sm">
+                              <li className="text-left">• Edit any contact information directly in the cells</li>
+                              <li className="text-left">• Add new contacts by editing empty rows</li>
+                              <li className="text-left">• Use the drag handle above to resize the spreadsheet view</li>
+                              <li className="text-left">• All changes are saved automatically</li>
                             </ul>
                           </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </li>
-                  <li>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="text-slate-300 hover:text-white transition-colors text-left">
-                          Privacy Policy
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="space-y-3">
-                          <h4 className="font-semibold text-green-400">Privacy Policy</h4>
-                          <p className="text-sm text-slate-300">
-                            Your privacy is our priority. Learn how we collect, use, and protect your data in compliance with international privacy standards.
-                          </p>
-                          <div className="space-y-2">
-                            <p className="text-xs text-slate-400">Key Points:</p>
-                            <ul className="text-xs text-slate-300 space-y-1 ml-4">
-                              <li>• GDPR compliant</li>
-                              <li>• End-to-end encryption</li>
-                              <li>• Data retention policies</li>
-                              <li>• Your rights and choices</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </li>
-                </ul>
-              </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CarouselItem>
+                </CarouselContent>
+              </Carousel>
             </div>
 
-            <div className="border-t border-slate-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="text-slate-400 hover:text-white text-sm transition-colors">
-                    © 2024 WA 2 Bulk Messenger. All rights reserved.
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <ProfileCard
-                    img="/James_Muriuki_passport_photo.jpg"
-                    name="James Muriuki"
-                    bio="Full-stack developer passionate about creating innovative solutions. Specializing in React, Next.js, and modern web technologies."
-                    position="Founder & Developer"
-                    skills={[
-                      { name: "React", icon: <span>⚛️</span> },
-                      { name: "Next.js", icon: <span>▲</span> },
-                      { name: "TypeScript", icon: <span>🔷</span> },
-                      { name: "Node.js", icon: <span>🟢</span> },
-                      { name: "Python", icon: <span>🐍</span> },
-                      { name: "AWS", icon: <span>☁️</span> },
-                    ]}
-                    socialLinks={[
-                      { name: "GitHub", url: "https://github.com", icon: <span>🐙</span> },
-                      { name: "LinkedIn", url: "https://linkedin.com", icon: <span>💼</span> },
-                      { name: "Twitter", url: "https://twitter.com", icon: <span>🐦</span> },
-                    ]}
-                    spotlight={true}
-                    spotlightColor="34, 197, 94"
-                  />
-                </PopoverContent>
-              </Popover>
-              <div className="flex space-x-6 mt-4 md:mt-0">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      className="text-slate-400 hover:text-white text-sm transition-colors"
-                      onClick={() => setCurrentPolicyPage(1)}
+            {/* Right side - Separator Demo */}
+            <div className="flex items-center justify-center">
+              <div className="w-full max-w-md space-y-8">
+                <div>
+                  <h1 className="text-xl font-bold">WA Bulk Messenger</h1>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    A powerful WhatsApp bulk messaging platform for efficient communication campaigns.
+                  </p>
+                  <SeparatorPro variant="default" className="my-4" />
+                  <div className="flex items-center justify-center space-x-4 text-sm">
+                    <span
+                      className="hover:underline cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveTab(activeTab === "create" ? null : "create");
+                      }}
                     >
-                      Terms of Service
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-96 max-h-96 overflow-y-auto">
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-green-400 text-center">{currentPolicy?.title}</h4>
-                      <div className="space-y-3">
-                        {currentPolicy?.content.map((section, index) => (
-                          <div key={index}>
-                            <h5 className="font-medium text-slate-200 mb-1">{section.heading}</h5>
-                            <p className="text-xs text-slate-300 leading-relaxed">{section.text}</p>
-                          </div>
-                        ))}
-                      </div>
-                      <Pagination className="mt-4">
-                        <PaginationContent>
-                          <PaginationItem>
-                            <PaginationPrevious
-                              onClick={() => setCurrentPolicyPage(Math.max(1, currentPolicyPage - 1))}
-                              className={currentPolicyPage === 1 ? "pointer-events-none opacity-50" : ""}
-                            />
-                          </PaginationItem>
-                          {policies.map((policy) => (
-                            <PaginationItem key={policy.id}>
-                              <PaginationLink
-                                isActive={currentPolicyPage === policy.id}
-                                onClick={() => setCurrentPolicyPage(policy.id)}
-                                className="cursor-pointer"
-                              >
-                                {policy.id}
-                              </PaginationLink>
-                            </PaginationItem>
-                          ))}
-                          <PaginationItem>
-                            <PaginationNext
-                              onClick={() => setCurrentPolicyPage(Math.min(3, currentPolicyPage + 1))}
-                              className={currentPolicyPage === 3 ? "pointer-events-none opacity-50" : ""}
-                            />
-                          </PaginationItem>
-                        </PaginationContent>
-                      </Pagination>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                      Create Message Template
+                    </span>
+                    <SeparatorPro
+                      variant="default"
+                      orientation="vertical"
+                      className="h-4"
+                    />
+                    <span
+                      className="hover:underline cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveTab(activeTab === "preview" ? null : "preview");
+                      }}
+                    >
+                      Preview Message Template
+                    </span>
+                    <SeparatorPro
+                      variant="default"
+                      orientation="vertical"
+                      className="h-4"
+                    />
+                    <span
+                      className="hover:underline cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveTab(activeTab === "select" ? null : "select");
+                      }}
+                    >
+                      Select Contacts
+                    </span>
+                  </div>
+                </div>
 
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      className="text-slate-400 hover:text-white text-sm transition-colors"
-                      onClick={() => setCurrentPolicyPage(2)}
-                    >
-                      Privacy Policy
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-96 max-h-96 overflow-y-auto">
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-green-400 text-center">{currentPolicy?.title}</h4>
-                      <div className="space-y-3">
-                        {currentPolicy?.content.map((section, index) => (
-                          <div key={index}>
-                            <h5 className="font-medium text-slate-200 mb-1">{section.heading}</h5>
-                            <p className="text-xs text-slate-300 leading-relaxed">{section.text}</p>
-                          </div>
-                        ))}
-                      </div>
-                      <Pagination className="mt-4">
-                        <PaginationContent>
-                          <PaginationItem>
-                            <PaginationPrevious
-                              onClick={() => setCurrentPolicyPage(Math.max(1, currentPolicyPage - 1))}
-                              className={currentPolicyPage === 1 ? "pointer-events-none opacity-50" : ""}
-                            />
-                          </PaginationItem>
-                          {policies.map((policy) => (
-                            <PaginationItem key={policy.id}>
-                              <PaginationLink
-                                isActive={currentPolicyPage === policy.id}
-                                onClick={() => setCurrentPolicyPage(policy.id)}
-                                className="cursor-pointer"
-                              >
-                                {policy.id}
-                              </PaginationLink>
-                            </PaginationItem>
-                          ))}
-                          <PaginationItem>
-                            <PaginationNext
-                              onClick={() => setCurrentPolicyPage(Math.min(3, currentPolicyPage + 1))}
-                              className={currentPolicyPage === 3 ? "pointer-events-none opacity-50" : ""}
-                            />
-                          </PaginationItem>
-                        </PaginationContent>
-                      </Pagination>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                {/* Inline Animated Tab */}
+                {activeTab && (
+                  <div className="mt-8 animate-in slide-in-from-bottom-4 duration-300" onClick={(e) => e.stopPropagation()}>
+                    {activeTab === "create" && (
+                      <Tabs defaultValue="template">
+                        <TabsList>
+                          <TabsTrigger value="template">Template</TabsTrigger>
+                          <TabsTrigger value="columns">Columns</TabsTrigger>
+                        </TabsList>
 
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      className="text-slate-400 hover:text-white text-sm transition-colors"
-                      onClick={() => setCurrentPolicyPage(3)}
-                    >
-                      Cookie Policy
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-96 max-h-96 overflow-y-auto">
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-green-400 text-center">{currentPolicy?.title}</h4>
-                      <div className="space-y-3">
-                        {currentPolicy?.content.map((section, index) => (
-                          <div key={index}>
-                            <h5 className="font-medium text-slate-200 mb-1">{section.heading}</h5>
-                            <p className="text-xs text-slate-300 leading-relaxed">{section.text}</p>
+                        <TabsContent value="template">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>Message Template</CardTitle>
+                              <CardDescription>
+                                Create a personalized message template for your WhatsApp campaign.
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="grid gap-6">
+                              <div className="grid gap-3">
+                                <Label htmlFor="template-content">Template Content</Label>
+                                <Textarea
+                                  id="template-content"
+                                  placeholder="Enter your message template. Use {{name}} for personalization..."
+                                  rows={4}
+                                />
+                              </div>
+                            </CardContent>
+                            <CardFooter>
+                              <Button>Save Template</Button>
+                            </CardFooter>
+                          </Card>
+                        </TabsContent>
+
+                        <TabsContent value="columns">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>Column Mapping</CardTitle>
+                              <CardDescription>
+                                Map your spreadsheet columns to template variables.
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="grid gap-6">
+                              <div className="grid gap-3">
+                                <Label htmlFor="name-column">Name Column</Label>
+                                <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+                                  <option>Select column...</option>
+                                  <option>Name (name)</option>
+                                  <option>Phone (phone)</option>
+                                  <option>Email (email)</option>
+                                </select>
+                              </div>
+                              <div className="grid gap-3">
+                                <Label htmlFor="phone-column">Phone Column</Label>
+                                <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+                                  <option>Select column...</option>
+                                  <option>Name (name)</option>
+                                  <option>Phone (phone)</option>
+                                  <option>Email (email)</option>
+                                </select>
+                              </div>
+                            </CardContent>
+                            <CardFooter>
+                              <Button>Update Mapping</Button>
+                            </CardFooter>
+                          </Card>
+                        </TabsContent>
+                      </Tabs>
+                    )}
+
+                    {activeTab === "preview" && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Message Preview</CardTitle>
+                          <CardDescription>
+                            See how your message will appear to recipients.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-6">
+                          <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
+                            <div className="text-sm text-gray-600 mb-2">
+                              <strong>Sample Message:</strong>
+                            </div>
+                            <div className="bg-white border border-gray-200 rounded-lg p-3 text-sm text-gray-800 leading-relaxed">
+                              Hello John Doe! Thank you for being our valued customer. We hope you're enjoying our services.
+                            </div>
+                            <div className="text-xs text-gray-500 mt-2">
+                              Preview shows data from the first contact row
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                      <Pagination className="mt-4">
-                        <PaginationContent>
-                          <PaginationItem>
-                            <PaginationPrevious
-                              onClick={() => setCurrentPolicyPage(Math.max(1, currentPolicyPage - 1))}
-                              className={currentPolicyPage === 1 ? "pointer-events-none opacity-50" : ""}
-                            />
-                          </PaginationItem>
-                          {policies.map((policy) => (
-                            <PaginationItem key={policy.id}>
-                              <PaginationLink
-                                isActive={currentPolicyPage === policy.id}
-                                onClick={() => setCurrentPolicyPage(policy.id)}
-                                className="cursor-pointer"
-                              >
-                                {policy.id}
-                              </PaginationLink>
-                            </PaginationItem>
-                          ))}
-                          <PaginationItem>
-                            <PaginationNext
-                              onClick={() => setCurrentPolicyPage(Math.min(3, currentPolicyPage + 1))}
-                              className={currentPolicyPage === 3 ? "pointer-events-none opacity-50" : ""}
-                            />
-                          </PaginationItem>
-                        </PaginationContent>
-                      </Pagination>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                        </CardContent>
+                        <CardFooter>
+                          <Button>Send Test Message</Button>
+                        </CardFooter>
+                      </Card>
+                    )}
+
+                    {activeTab === "select" && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Contact Selection</CardTitle>
+                          <CardDescription>
+                            Choose which contacts to include in your messaging campaign.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-6">
+                          <div className="grid gap-3">
+                            <Label htmlFor="contact-range">Select Contact Range</Label>
+                            <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+                              <option>Select option...</option>
+                              <option>All Contacts (5)</option>
+                              <option>Valid Phone Numbers (5)</option>
+                            </select>
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            5 contacts imported • Ready for WhatsApp bulk messaging
+                          </div>
+                        </CardContent>
+                        <CardFooter>
+                          <Button>Confirm Selection</Button>
+                        </CardFooter>
+                      </Card>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </footer>
+
+          <div className="mt-6 flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              {tableData.length} contacts imported • Ready for WhatsApp bulk messaging
+            </div>
+            <Button className="bg-green-600 hover:bg-green-700">
+              Send Campaign Message
+            </Button>
+          </div>
+        </div>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-slate-900 text-white py-8 ">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {/* Company Info */}
+            <div className="md:col-span-2">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-semibold">WA</div>
+                <span className="text-xl font-semibold">WA 2 Bulk Messenger</span>
+              </div>
+              <p className="text-slate-300 mb-4 max-w-md">
+                Transform your contact lists into powerful WhatsApp campaigns. Clean, validate, and send messages to thousands of contacts with ease.
+              </p>
+              <div className="flex space-x-4">
+                <a href="#" className="text-slate-400 hover:text-green-400 transition-colors">
+                  <MessageSquare className="w-5 h-5" />
+                </a>
+                <a href="#" className="text-slate-400 hover:text-green-400 transition-colors">
+                  <Mail className="w-5 h-5" />
+                </a>
+                <a href="#" className="text-slate-400 hover:text-green-400 transition-colors">
+                  <Phone className="w-5 h-5" />
+                </a>
+              </div>
+            </div>
+
+            {/* Product Links */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-green-400">Product</h3>
+              <ul className="space-y-2">
+                <li><a href="#features" className="text-slate-300 hover:text-white transition-colors">Features</a></li>
+                <li><a href="#pricing" className="text-slate-300 hover:text-white transition-colors">Pricing</a></li>
+                <li><a href="#templates" className="text-slate-300 hover:text-white transition-colors">Templates</a></li>
+                <li><a href="#tools" className="text-slate-300 hover:text-white transition-colors">Tools</a></li>
+              </ul>
+            </div>
+
+            {/* Support Links */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-green-400">Support</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="text-slate-300 hover:text-white transition-colors text-left">
+                        Help Center
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-green-400">Help Center</h4>
+                        <p className="text-sm text-slate-300">
+                          Find answers to frequently asked questions, troubleshooting guides, and best practices for using WA Bulk Messenger effectively.
+                        </p>
+                        <div className="space-y-2">
+                          <p className="text-xs text-slate-400">Common Topics:</p>
+                          <ul className="text-xs text-slate-300 space-y-1 ml-4">
+                            <li>• File upload issues</li>
+                            <li>• Data cleaning tips</li>
+                            <li>• Message delivery problems</li>
+                            <li>• Account settings</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </li>
+                <li>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="text-slate-300 hover:text-white transition-colors text-left">
+                        Documentation
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-green-400">Documentation</h4>
+                        <p className="text-sm text-slate-300">
+                          Comprehensive guides and API documentation for developers and advanced users looking to integrate WA Bulk Messenger.
+                        </p>
+                        <div className="space-y-2">
+                          <p className="text-xs text-slate-400">Available Resources:</p>
+                          <ul className="text-xs text-slate-300 space-y-1 ml-4">
+                            <li>• API Reference</li>
+                            <li>• Integration Guides</li>
+                            <li>• Webhook Documentation</li>
+                            <li>• SDK Downloads</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </li>
+                <li>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="text-slate-300 hover:text-white transition-colors text-left">
+                        Contact Us
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-green-400">Contact Us</h4>
+                        <p className="text-sm text-slate-300">
+                          Need help? Our support team is here to assist you. Get in touch through multiple channels for personalized assistance.
+                        </p>
+                        <div className="space-y-2">
+                          <p className="text-xs text-slate-400">Contact Methods:</p>
+                          <ul className="text-xs text-slate-300 space-y-1 ml-4">
+                            <li>• support@wabulkmessenger.com</li>
+                            <li>• Live chat (9 AM - 6 PM EST)</li>
+                            <li>• WhatsApp: +1 (555) 123-4567</li>
+                            <li>• Response time: less than 2 hours</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </li>
+                <li>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="text-slate-300 hover:text-white transition-colors text-left">
+                        Privacy Policy
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-green-400">Privacy Policy</h4>
+                        <p className="text-sm text-slate-300">
+                          Your privacy is our priority. Learn how we collect, use, and protect your data in compliance with international privacy standards.
+                        </p>
+                        <div className="space-y-2">
+                          <p className="text-xs text-slate-400">Key Points:</p>
+                          <ul className="text-xs text-slate-300 space-y-1 ml-4">
+                            <li>• GDPR compliant</li>
+                            <li>• End-to-end encryption</li>
+                            <li>• Data retention policies</li>
+                            <li>• Your rights and choices</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-slate-400 hover:text-white text-sm transition-colors">
+                  © 2024 WA 2 Bulk Messenger. All rights reserved.
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <ProfileCard
+                  img="/James_Muriuki_passport_photo.jpg"
+                  name="James Muriuki"
+                  bio="Full-stack developer passionate about creating innovative solutions. Specializing in React, Next.js, and modern web technologies."
+                  position="Founder & Developer"
+                  skills={[
+                    { name: "React", icon: <span>⚛️</span> },
+                    { name: "Next.js", icon: <span>▲</span> },
+                    { name: "TypeScript", icon: <span>🔷</span> },
+                    { name: "Node.js", icon: <span>🟢</span> },
+                    { name: "Python", icon: <span>🐍</span> },
+                    { name: "AWS", icon: <span>☁️</span> },
+                  ]}
+                  socialLinks={[
+                    { name: "GitHub", url: "https://github.com", icon: <span>🐙</span> },
+                    { name: "LinkedIn", url: "https://linkedin.com", icon: <span>💼</span> },
+                    { name: "Twitter", url: "https://twitter.com", icon: <span>🐦</span> },
+                  ]}
+                  spotlight={true}
+                  spotlightColor="34, 197, 94"
+                />
+              </PopoverContent>
+            </Popover>
+            <div className="flex space-x-6 mt-4 md:mt-0">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    className="text-slate-400 hover:text-white text-sm transition-colors"
+                    onClick={() => setCurrentPolicyPage(1)}
+                  >
+                    Terms of Service
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-96 max-h-96 overflow-y-auto">
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-green-400 text-center">{currentPolicy?.title}</h4>
+                    <div className="space-y-3">
+                      {currentPolicy?.content.map((section, index) => (
+                        <div key={index}>
+                          <h5 className="font-medium text-slate-200 mb-1">{section.heading}</h5>
+                          <p className="text-xs text-slate-300 leading-relaxed">{section.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <Pagination className="mt-4">
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setCurrentPolicyPage(Math.max(1, currentPolicyPage - 1))}
+                            className={currentPolicyPage === 1 ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                        {policies.map((policy) => (
+                          <PaginationItem key={policy.id}>
+                            <PaginationLink
+                              isActive={currentPolicyPage === policy.id}
+                              onClick={() => setCurrentPolicyPage(policy.id)}
+                              className="cursor-pointer"
+                            >
+                              {policy.id}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setCurrentPolicyPage(Math.min(3, currentPolicyPage + 1))}
+                            className={currentPolicyPage === 3 ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    className="text-slate-400 hover:text-white text-sm transition-colors"
+                    onClick={() => setCurrentPolicyPage(2)}
+                  >
+                    Privacy Policy
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-96 max-h-96 overflow-y-auto">
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-green-400 text-center">{currentPolicy?.title}</h4>
+                    <div className="space-y-3">
+                      {currentPolicy?.content.map((section, index) => (
+                        <div key={index}>
+                          <h5 className="font-medium text-slate-200 mb-1">{section.heading}</h5>
+                          <p className="text-xs text-slate-300 leading-relaxed">{section.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <Pagination className="mt-4">
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setCurrentPolicyPage(Math.max(1, currentPolicyPage - 1))}
+                            className={currentPolicyPage === 1 ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                        {policies.map((policy) => (
+                          <PaginationItem key={policy.id}>
+                            <PaginationLink
+                              isActive={currentPolicyPage === policy.id}
+                              onClick={() => setCurrentPolicyPage(policy.id)}
+                              className="cursor-pointer"
+                            >
+                              {policy.id}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setCurrentPolicyPage(Math.min(3, currentPolicyPage + 1))}
+                            className={currentPolicyPage === 3 ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    className="text-slate-400 hover:text-white text-sm transition-colors"
+                    onClick={() => setCurrentPolicyPage(3)}
+                  >
+                    Cookie Policy
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-96 max-h-96 overflow-y-auto">
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-green-400 text-center">{currentPolicy?.title}</h4>
+                    <div className="space-y-3">
+                      {currentPolicy?.content.map((section, index) => (
+                        <div key={index}>
+                          <h5 className="font-medium text-slate-200 mb-1">{section.heading}</h5>
+                          <p className="text-xs text-slate-300 leading-relaxed">{section.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <Pagination className="mt-4">
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setCurrentPolicyPage(Math.max(1, currentPolicyPage - 1))}
+                            className={currentPolicyPage === 1 ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                        {policies.map((policy) => (
+                          <PaginationItem key={policy.id}>
+                            <PaginationLink
+                              isActive={currentPolicyPage === policy.id}
+                              onClick={() => setCurrentPolicyPage(policy.id)}
+                              className="cursor-pointer"
+                            >
+                              {policy.id}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setCurrentPolicyPage(Math.min(3, currentPolicyPage + 1))}
+                            className={currentPolicyPage === 3 ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
