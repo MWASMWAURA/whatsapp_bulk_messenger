@@ -150,24 +150,33 @@ export default function HomePage() {
                 <span className="text-white font-semibold text-sm">WA Bulk Messenger</span>
               </div>
               <div className="flex gap-6 items-center">
-                <a
-                  href="#testimonials"
+                <button
+                  onClick={() => {
+                    const testimonialsSection = document.querySelector('#testimonials');
+                    testimonialsSection?.scrollIntoView({ behavior: 'smooth' });
+                  }}
                   className="text-white hover:text-white/70 transition-colors font-medium text-sm md:text-base"
                 >
                   Testimonials
-                </a>
-                <a
-                  href="#features"
+                </button>
+                <button
+                  onClick={() => {
+                    const featuresSection = document.querySelector('#features');
+                    featuresSection?.scrollIntoView({ behavior: 'smooth' });
+                  }}
                   className="text-white hover:text-white/70 transition-colors font-medium text-sm md:text-base"
                 >
                   Features
-                </a>
-                <a
-                  href="#how-it-works"
+                </button>
+                <button
+                  onClick={() => {
+                    const howItWorksSection = document.querySelector('#how-it-works');
+                    howItWorksSection?.scrollIntoView({ behavior: 'smooth' });
+                  }}
                   className="text-white hover:text-white/70 transition-colors font-medium text-sm md:text-base"
                 >
                   How It Works
-                </a>
+                </button>
                 
                 
                 <button
