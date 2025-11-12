@@ -52,7 +52,18 @@ export default function IntegratedContentManagement() {
   const [selectedExcelCell, setSelectedExcelCell] = useState(null);
   const [activeTab, setActiveTab] = useState(null);
   const [currentPolicyPage, setCurrentPolicyPage] = useState(1);
+  const [qrCode, setQrCode] = useState(null);
+  const [qrStatus, setQrStatus] = useState('disconnected');
+  const [ws, setWs] = useState(null);
   const excelInputRefs = useRef({});
+  const [activityLogs, setActivityLogs] = useState([
+  { time: '--:--:--', message: 'Waiting for connection...', type: 'info' }
+]);
+
+const addLog = (message, type = 'info') => {
+  const time = new Date().toLocaleTimeString();
+  setActivityLogs(prev => [...prev, { time, message, type }]);
+};
 
   const policies = [
     {
@@ -239,6 +250,65 @@ export default function IntegratedContentManagement() {
     setExcelCells(newCells);
   }, []);
 
+  // Fetch QR code from backend
+ // WebSocket connection for QR code
+useEffect(() => {
+  const ws = new WebSocket('ws://localhost:3000');
+
+  ws.onopen = () => {
+    console.log('WebSocket connected');
+    setQrStatus('connecting');
+  };
+
+  ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  
+  switch(data.type) {
+    case 'qr':
+      setQrCode(data.qr);
+      setQrStatus('connecting');
+      addLog('QR Code received. Please scan with WhatsApp.', 'info'); // Add this
+      break;
+    case 'ready':
+      setQrStatus('connected');
+      addLog('WhatsApp connected successfully!', 'success'); // Add this
+      break;
+    case 'logout-started':
+      addLog('Logout initiated...', 'info'); // Add this
+      break;
+    case 'logged-out':
+      setQrCode(null);
+      setQrStatus('disconnected');
+      addLog('Logged out successfully. Waiting for new connection...', 'info'); // Add this
+      break;
+    case 'status':
+      console.log('Status:', data.message);
+      addLog(data.message, 'info'); // Add this
+      break;
+    case 'error':
+      console.error('Error:', data.message);
+      addLog(`Error: ${data.message}`, 'error'); // Add this
+      setQrStatus('error');
+      break;
+  }
+};
+
+ws.onerror = (error) => {
+  console.error('WebSocket error:', error);
+  addLog('Connection error. Make sure the backend is running.', 'error'); // Add this
+  setQrStatus('error');
+};
+
+ws.onclose = () => {
+  console.log('WebSocket disconnected');
+  addLog('WebSocket disconnected', 'error'); // Add this
+  setQrStatus('disconnected');
+};
+  setWs(ws);//store websocket in state
+
+  return () => ws.close();
+}, []);
+
   const handleExcelCellChange = (row, col, value) => {
     setExcelCells(prev => ({
       ...prev,
@@ -315,11 +385,37 @@ export default function IntegratedContentManagement() {
                   {item.content && item.content.type === "qr_scanner" && (
                     <div className="mt-3 text-center">
                       <div className="bg-white p-4 rounded-lg inline-block">
-                        <div className="w-32 h-32 bg-gray-200 flex items-center justify-center text-gray-600 text-xs">
-                          QR Code Placeholder
-                        </div>
+                        {qrCode ? (
+                          qrCode.startsWith('data:image/') ? (
+                            <img
+                              src={qrCode}
+                              alt="WhatsApp QR Code"
+                              className="w-32 h-32"
+                            />
+                          ) : (
+                            <div className="w-32 h-32 bg-gray-100 flex items-center justify-center text-xs font-mono p-2 overflow-hidden">
+                              <div className="break-all text-center">
+                                {qrCode.length > 200 ? `${qrCode.substring(0, 200)}...` : qrCode}
+                              </div>
+                            </div>
+                          )
+                        ) : (
+                          <div className="w-32 h-32 bg-gray-200 flex items-center justify-center text-gray-600 text-xs">
+                            {qrStatus === 'error' ? 'Error loading QR' : 'Loading QR...'}
+                          </div>
+                        )}
                       </div>
-                      <p className="text-gray-300 text-sm mt-2">Scan this QR code with WhatsApp on your phone</p>
+                      <p className="text-gray-300 text-sm mt-2">
+                        {qrStatus === 'connected' ? 'WhatsApp Connected!' :
+                         qrStatus === 'connecting' ? 'Connecting...' :
+                         qrStatus === 'error' ? 'Connection Error' :
+                         'Scan this QR code with WhatsApp on your phone'}
+                      </p>
+                      {qrStatus !== 'connected' && qrCode && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Point your phone camera here
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -335,15 +431,34 @@ export default function IntegratedContentManagement() {
     <div className="min-h-screen bg-gray-100" onClick={handleOutsideClick}>
       {/* Expandable Dock */}
       <ExpandableDock
-        headerContent={
-          <div className="flex items-center gap-3 text-black dark:text-white w-full">
-            <MessageSquare className="w-5 h-5" />
-            <span className="font-medium">WhatsApp Connect</span>
-            <div className="ml-auto text-xs bg-white/20 dark:bg-black/20 text-black dark:text-white px-2 py-1 rounded">
-              Help Center
-            </div>
-          </div>
-        }
+  headerContent={
+    <div className="flex items-center gap-3 text-black dark:text-white w-full">
+      <MessageSquare className="w-5 h-5" />
+      <span className="font-medium">WhatsApp Connect</span>
+      <div className="ml-auto flex items-center gap-2">
+        {qrStatus === 'connected' && (
+          <button
+            onClick={() => {
+              if (confirm('Are you sure you want to logout?')) {
+                // Send logout via WebSocket (you'll need to store ws in state)
+                if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'logout' })); // Add this
+    }
+                setQrStatus('disconnected');
+                setQrCode(null);
+              }
+            }}
+            className="text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition-colors"
+          >
+            🚪 Logout
+          </button>
+        )}
+        <div className="text-xs bg-white/20 dark:bg-black/20 text-black dark:text-white px-2 py-1 rounded">
+          Help Center
+        </div>
+      </div>
+    </div>
+  }
         className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700"
       >
         <div className="flex flex-col h-full">
@@ -352,10 +467,43 @@ export default function IntegratedContentManagement() {
               <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
                 <Smartphone className="w-8 h-8 text-gray-400 mb-2" />
                 <p className="text-xs text-gray-600 text-center mb-2">Scan QR Code</p>
-                <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200">
-                  <span className="text-sm text-gray-400 font-mono">QR CODE</span>
+                <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200 overflow-hidden">
+                  {qrCode ? (
+                    qrCode.startsWith('data:image/') ? (
+                      <img
+                        src={qrCode}
+                        alt="WhatsApp QR Code"
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <div className="text-xs text-center p-1 break-all font-mono bg-white">
+                        {qrCode.length > 100 ? `${qrCode.substring(0, 100)}...` : qrCode}
+                      </div>
+                    )
+                  ) : (
+                    <span className="text-sm text-gray-400 font-mono">
+                      {qrStatus === 'error' ? 'ERROR' : 'LOADING'}
+                    </span>
+                  )}
                 </div>
-                <p className="text-xs text-gray-500 mt-2 text-center">Point your phone camera here</p>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  {qrStatus === 'connected' ? 'Connected!' :
+                   qrStatus === 'connecting' ? 'Connecting...' :
+                   qrStatus === 'error' ? 'Connection Error' :
+                   'Point your phone camera here'}
+                </p>
+                {!qrCode && qrStatus !== 'connected' && (
+                  <Button
+                    onClick={() => {
+  // Connection is automatic via WebSocket
+  setQrStatus('connecting');
+}}
+                    className="mt-3 text-xs px-3 py-1 h-auto"
+                    size="sm"
+                  >
+                    Start WhatsApp Session
+                  </Button>
+                )}
               </div>
               <div className="flex flex-col justify-center">
                 <h4 className="font-semibold text-sm mb-3 text-gray-800">How to Connect:</h4>
@@ -388,6 +536,24 @@ export default function IntegratedContentManagement() {
                 </div>
               </div>
             </div>
+            {/* Activity Log Section */}
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <h4 className="font-semibold text-sm mb-3 text-gray-800 dark:text-gray-200">Activity Log</h4>
+            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3 max-h-48 overflow-y-auto font-mono text-xs">
+              {activityLogs.map((log, index) => (
+                <div key={index} className="py-1 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
+                  <span className="text-gray-500 dark:text-gray-400 mr-2">{log.time}</span>
+                  <span className={
+                    log.type === 'success' ? 'text-green-600 dark:text-green-400' :
+                    log.type === 'error' ? 'text-red-600 dark:text-red-400' :
+                    'text-blue-600 dark:text-blue-400'
+                  }>
+                    {log.message}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
           </div>
         </div>
       </ExpandableDock>
