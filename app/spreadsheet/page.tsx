@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -57,13 +57,22 @@ export default function IntegratedContentManagement() {
   const [ws, setWs] = useState(null);
   const excelInputRefs = useRef({});
   const [activityLogs, setActivityLogs] = useState([
-  { time: '--:--:--', message: 'Waiting for connection...', type: 'info' }
-]);
+    { time: '--:--:--', message: 'Waiting for connection...', type: 'info' }
+  ]);
+  const [selectedNameColumn, setSelectedNameColumn] = useState(0);
+  const [selectedPhoneColumn, setSelectedPhoneColumn] = useState(1);
+  const [messageTemplate, setMessageTemplate] = useState('Hello {{name}}! Your phone is {{phone}}.');
 
-const addLog = (message, type = 'info') => {
-  const time = new Date().toLocaleTimeString();
-  setActivityLogs(prev => [...prev, { time, message, type }]);
-};
+  const addLog = (message, type = 'info') => {
+    const time = new Date().toLocaleTimeString();
+    setActivityLogs(prev => [...prev, { time, message, type }]);
+  };
+
+  // MOVE getColumnLabel HERE - before any useMemo that uses it
+  const getColumnLabel = (index) => {
+    if (index < 26) return String.fromCharCode(65 + index);
+    return String.fromCharCode(64 + Math.floor(index / 26)) + String.fromCharCode(65 + (index % 26));
+  };
 
   const policies = [
     {
@@ -172,63 +181,23 @@ const addLog = (message, type = 'info') => {
             data: "Your WhatsApp connection is secured with end-to-end encryption. Messages are sent directly through WhatsApp's official servers, and we never store your personal messages or contact information. Your data remains private and secure."
           }
         },
-        {
-          title: "Supported devices",
-          description: "Compatible phones and computers",
-          content: {
-            type: "text",
-            title: "Device Compatibility",
-            data: "Works with iPhone, Android phones, and all major computer operating systems including Windows, macOS, and Linux. Your phone must have WhatsApp installed and an active internet connection."
-          }
-        },
-        {
-          title: "Connection limits",
-          description: "How many devices can be linked",
-          content: {
-            type: "text",
-            title: "Device Connection Limits",
-            data: "WhatsApp allows up to 4 devices to be linked to a single WhatsApp account simultaneously. You can manage linked devices from your WhatsApp settings on your phone."
-          }
-        },
-        {
-          title: "Data usage",
-          description: "Network requirements",
-          content: {
-            type: "text",
-            title: "Network & Data Requirements",
-            data: "A stable internet connection is required for both your phone and computer. Data usage depends on the number of messages sent. We recommend using Wi-Fi for large campaigns to minimize mobile data costs."
-          }
-        },
-        {
-          title: "Troubleshooting",
-          description: "Common connection issues",
-          content: {
-            type: "list",
-            title: "Common Issues & Solutions",
-            data: [
-              { issue: "QR code not scanning", solution: "Ensure good lighting and hold your phone steady. Try refreshing the QR code." },
-              { issue: "Connection timeout", solution: "Check your internet connection and try again. Make sure WhatsApp is updated on your phone." },
-              { issue: "Device limit reached", solution: "WhatsApp allows up to 4 linked devices. Unlink unused devices from your WhatsApp settings." },
-              { issue: "Phone not recognized", solution: "Ensure your phone's WhatsApp is logged in and has an active internet connection." }
-            ]
-          }
-        },
       ],
     },
   ];
 
   const tableData = [
-    { name: 'John Doe', phone: '+1234567890', email: 'john@example.com' },
-    { name: 'Jane Smith', phone: '+0987654321', email: 'jane@example.com' },
-    { name: 'Alice Johnson', phone: '+1122334455', email: 'alice@example.com' },
-    { name: 'Bob Wilson', phone: '+5566778899', email: 'bob@example.com' },
-    { name: 'Emma Davis', phone: '+9988776655', email: 'emma@example.com' },
+    { name: 'John Doe', phone: '+1234567890', email: 'john@example.com', title: 'Mr.' },
+    { name: 'Jane Smith', phone: '+0987654321', email: 'jane@example.com', title: 'Ms.' },
+    { name: 'Alice Johnson', phone: '+1122334455', email: 'alice@example.com', title: 'Dr.' },
+    { name: 'Bob Wilson', phone: '+5566778899', email: 'bob@example.com', title: 'Mr.' },
+    { name: 'Emma Davis', phone: '+9988776655', email: 'emma@example.com', title: 'Mrs.' },
   ];
-
+  
   const tableColumns = [
     { accessorKey: 'name', header: 'Name' },
     { accessorKey: 'phone', header: 'Phone' },
     { accessorKey: 'email', header: 'Email' },
+    { accessorKey: 'title', header: 'Title' },
   ];
 
   useEffect(() => {
@@ -250,64 +219,121 @@ const addLog = (message, type = 'info') => {
     setExcelCells(newCells);
   }, []);
 
-  // Fetch QR code from backend
- // WebSocket connection for QR code
-useEffect(() => {
-  const ws = new WebSocket('ws://localhost:3000');
+  // Dynamically detect available columns from row 0 (headers)
+  const availableColumns = useMemo(() => {
+    const cols = [];
+    for (let i = 0; i < 26; i++) {
+      const headerValue = excelCells[`0-${i}`];
+      if (headerValue && headerValue.trim()) {
+        cols.push({
+          index: i,
+          label: getColumnLabel(i),
+          header: headerValue
+        });
+      }
+    }
+    return cols;
+  }, [excelCells]);
 
-  ws.onopen = () => {
-    console.log('WebSocket connected');
-    setQrStatus('connecting');
+  // Extract real contacts with ALL columns dynamically
+  const extractedContacts = useMemo(() => {
+    const contacts = [];
+    
+    for (let row = 1; row < 100; row++) {
+      const phone = excelCells[`${row}-${selectedPhoneColumn}`];
+      
+      if (phone && phone.trim()) {
+        const contact = {
+          phone: phone.trim(),
+        };
+        
+        // Dynamically add all columns to the contact object
+        availableColumns.forEach(col => {
+          const value = excelCells[`${row}-${col.index}`];
+          contact[col.header.toLowerCase()] = (value || '').trim();
+        });
+        
+        contacts.push(contact);
+      }
+    }
+    
+    return contacts;
+  }, [excelCells, selectedPhoneColumn, availableColumns]);
+
+  // Parse template and replace variables with actual data
+  const parseTemplate = (template, contact) => {
+    if (!contact) return template;
+    
+    let parsed = template;
+    
+    // Replace all {{columnName}} with actual values
+    availableColumns.forEach(col => {
+      const placeholder = new RegExp(`{{${col.header.toLowerCase()}}}`, 'gi');
+      const value = contact[col.header.toLowerCase()] || `[${col.header}]`;
+      parsed = parsed.replace(placeholder, value);
+    });
+    
+    return parsed;
   };
 
-  ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  
-  switch(data.type) {
-    case 'qr':
-      setQrCode(data.qr);
+  // WebSocket connection for QR code
+  useEffect(() => {
+    const ws = new WebSocket('ws://localhost:3000');
+
+    ws.onopen = () => {
+      console.log('WebSocket connected');
       setQrStatus('connecting');
-      addLog('QR Code received. Please scan with WhatsApp.', 'info'); // Add this
-      break;
-    case 'ready':
-      setQrStatus('connected');
-      addLog('WhatsApp connected successfully!', 'success'); // Add this
-      break;
-    case 'logout-started':
-      addLog('Logout initiated...', 'info'); // Add this
-      break;
-    case 'logged-out':
-      setQrCode(null);
-      setQrStatus('disconnected');
-      addLog('Logged out successfully. Waiting for new connection...', 'info'); // Add this
-      break;
-    case 'status':
-      console.log('Status:', data.message);
-      addLog(data.message, 'info'); // Add this
-      break;
-    case 'error':
-      console.error('Error:', data.message);
-      addLog(`Error: ${data.message}`, 'error'); // Add this
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      switch(data.type) {
+        case 'qr':
+          setQrCode(data.qr);
+          setQrStatus('connecting');
+          addLog('QR Code received. Please scan with WhatsApp.', 'info');
+          break;
+        case 'ready':
+          setQrStatus('connected');
+          addLog('WhatsApp connected successfully!', 'success');
+          break;
+        case 'logout-started':
+          addLog('Logout initiated...', 'info');
+          break;
+        case 'logged-out':
+          setQrCode(null);
+          setQrStatus('disconnected');
+          addLog('Logged out successfully. Waiting for new connection...', 'info');
+          break;
+        case 'status':
+          console.log('Status:', data.message);
+          addLog(data.message, 'info');
+          break;
+        case 'error':
+          console.error('Error:', data.message);
+          addLog(`Error: ${data.message}`, 'error');
+          setQrStatus('error');
+          break;
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      addLog('Connection error. Make sure the backend is running.', 'error');
       setQrStatus('error');
-      break;
-  }
-};
+    };
 
-ws.onerror = (error) => {
-  console.error('WebSocket error:', error);
-  addLog('Connection error. Make sure the backend is running.', 'error'); // Add this
-  setQrStatus('error');
-};
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      addLog('WebSocket disconnected', 'error');
+      setQrStatus('disconnected');
+    };
+    
+    setWs(ws);
 
-ws.onclose = () => {
-  console.log('WebSocket disconnected');
-  addLog('WebSocket disconnected', 'error'); // Add this
-  setQrStatus('disconnected');
-};
-  setWs(ws);//store websocket in state
-
-  return () => ws.close();
-}, []);
+    return () => ws.close();
+  }, []);
 
   const handleExcelCellChange = (row, col, value) => {
     setExcelCells(prev => ({
@@ -334,11 +360,6 @@ ws.onclose = () => {
     }
   };
 
-  const getColumnLabel = (index) => {
-    if (index < 26) return String.fromCharCode(65 + index);
-    return String.fromCharCode(64 + Math.floor(index / 26)) + String.fromCharCode(65 + (index % 26));
-  };
-
   const handleOutsideClick = (e) => {
     if (e.target === e.currentTarget) {
       setActiveTab(null);
@@ -363,23 +384,14 @@ ws.onclose = () => {
                       <p className="text-gray-300 text-sm">{item.description}</p>
                     </div>
                     {'category' in item && item.category && (
-                        <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                          {item.category}
-                        </span>
-                      )}
+                      <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                        {item.category}
+                      </span>
+                    )}
                   </div>
                   {item.content && item.content.type === "text" && (
                     <div className="mt-3 text-gray-200 text-sm whitespace-pre-line">
                       {item.content.data}
-                    </div>
-                  )}
-                  {item.content && item.content.type === "list" && item.content.data && Array.isArray(item.content.data) && (
-                    <div className="mt-3 space-y-2">
-                      {item.content.data.map((listItem: any, listIndex: number) => (
-                        <div key={listIndex} className="text-gray-200 text-sm">
-                          <strong className="text-green-400">{listItem.issue}:</strong> {listItem.solution}
-                        </div>
-                      ))}
                     </div>
                   )}
                   {item.content && item.content.type === "qr_scanner" && (
@@ -411,11 +423,6 @@ ws.onclose = () => {
                          qrStatus === 'error' ? 'Connection Error' :
                          'Scan this QR code with WhatsApp on your phone'}
                       </p>
-                      {qrStatus !== 'connected' && qrCode && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          Point your phone camera here
-                        </p>
-                      )}
                     </div>
                   )}
                 </div>
@@ -429,36 +436,34 @@ ws.onclose = () => {
 
   return (
     <div className="min-h-screen bg-gray-100" onClick={handleOutsideClick}>
-      {/* Expandable Dock */}
       <ExpandableDock
-  headerContent={
-    <div className="flex items-center gap-3 text-black dark:text-white w-full">
-      <MessageSquare className="w-5 h-5" />
-      <span className="font-medium">WhatsApp Connect</span>
-      <div className="ml-auto flex items-center gap-2">
-        {qrStatus === 'connected' && (
-          <button
-            onClick={() => {
-              if (confirm('Are you sure you want to logout?')) {
-                // Send logout via WebSocket (you'll need to store ws in state)
-                if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'logout' })); // Add this
-    }
-                setQrStatus('disconnected');
-                setQrCode(null);
-              }
-            }}
-            className="text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition-colors"
-          >
-            🚪 Logout
-          </button>
-        )}
-        <div className="text-xs bg-white/20 dark:bg-black/20 text-black dark:text-white px-2 py-1 rounded">
-          Help Center
-        </div>
-      </div>
-    </div>
-  }
+        headerContent={
+          <div className="flex items-center gap-3 text-black dark:text-white w-full">
+            <MessageSquare className="w-5 h-5" />
+            <span className="font-medium">WhatsApp Connect</span>
+            <div className="ml-auto flex items-center gap-2">
+              {qrStatus === 'connected' && (
+                <button
+                  onClick={() => {
+                    if (confirm('Are you sure you want to logout?')) {
+                      if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'logout' }));
+                      }
+                      setQrStatus('disconnected');
+                      setQrCode(null);
+                    }
+                  }}
+                  className="text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition-colors"
+                >
+                  🚪 Logout
+                </button>
+              )}
+              <div className="text-xs bg-white/20 dark:bg-black/20 text-black dark:text-white px-2 py-1 rounded">
+                Help Center
+              </div>
+            </div>
+          </div>
+        }
         className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700"
       >
         <div className="flex flex-col h-full">
@@ -492,18 +497,6 @@ ws.onclose = () => {
                    qrStatus === 'error' ? 'Connection Error' :
                    'Point your phone camera here'}
                 </p>
-                {!qrCode && qrStatus !== 'connected' && (
-                  <Button
-                    onClick={() => {
-  // Connection is automatic via WebSocket
-  setQrStatus('connecting');
-}}
-                    className="mt-3 text-xs px-3 py-1 h-auto"
-                    size="sm"
-                  >
-                    Start WhatsApp Session
-                  </Button>
-                )}
               </div>
               <div className="flex flex-col justify-center">
                 <h4 className="font-semibold text-sm mb-3 text-gray-800">How to Connect:</h4>
@@ -529,45 +522,35 @@ ws.onclose = () => {
                     <span>Your WhatsApp is now connected!</span>
                   </li>
                 </ol>
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-xs text-green-800">
-                    <strong>Tip:</strong> Make sure your phone and computer are on the same Wi-Fi network for faster connection.
-                  </p>
-                </div>
               </div>
             </div>
-            {/* Activity Log Section */}
-          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <h4 className="font-semibold text-sm mb-3 text-gray-800 dark:text-gray-200">Activity Log</h4>
-            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3 max-h-48 overflow-y-auto font-mono text-xs">
-              {activityLogs.map((log, index) => (
-                <div key={index} className="py-1 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
-                  <span className="text-gray-500 dark:text-gray-400 mr-2">{log.time}</span>
-                  <span className={
-                    log.type === 'success' ? 'text-green-600 dark:text-green-400' :
-                    log.type === 'error' ? 'text-red-600 dark:text-red-400' :
-                    'text-blue-600 dark:text-blue-400'
-                  }>
-                    {log.message}
-                  </span>
-                </div>
-              ))}
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <h4 className="font-semibold text-sm mb-3 text-gray-800 dark:text-gray-200">Activity Log</h4>
+              <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3 max-h-48 overflow-y-auto font-mono text-xs">
+                {activityLogs.map((log, index) => (
+                  <div key={index} className="py-1 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
+                    <span className="text-gray-500 dark:text-gray-400 mr-2">{log.time}</span>
+                    <span className={
+                      log.type === 'success' ? 'text-green-600 dark:text-green-400' :
+                      log.type === 'error' ? 'text-red-600 dark:text-red-400' :
+                      'text-blue-600 dark:text-blue-400'
+                    }>
+                      {log.message}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
           </div>
         </div>
       </ExpandableDock>
-      {/* Top Area - Spreadsheet */}
+
       <div className="bg-white">
         <div className="bg-green-700 text-white px-4 py-2 font-semibold text-sm flex items-center justify-between">
           <span>Imported Contacts Spreadsheet</span>
           <div className="flex items-center gap-2">
             <span className="text-xs">Tab to move • Enter for next row</span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-            >
+            <Button variant="outline" size="sm" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
               ✕ Close
             </Button>
           </div>
@@ -616,7 +599,6 @@ ws.onclose = () => {
         </div>
       </div>
 
-      {/* Content Area */}
       <div className="bg-gradient-to-r from-orange-100 to-green-100">
         <div className="p-8">
           <h1 className="text-3xl font-bold mb-4 text-gray-800">Contact Management</h1>
@@ -625,7 +607,6 @@ ws.onclose = () => {
           </p>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left side - Carousel Features */}
             <div className="flex items-center justify-center">
               <Carousel className="w-full max-w-xs">
                 <CarouselContent>
@@ -647,48 +628,10 @@ ws.onclose = () => {
                       </Card>
                     </div>
                   </CarouselItem>
-                  <CarouselItem>
-                    <div className="p-1">
-                      <Card>
-                        <CardContent className="flex aspect-square items-center justify-center p-6">
-                          <div className="text-center">
-                            <h2 className="text-xl font-semibold mb-4 text-gray-800">Keyboard Shortcuts</h2>
-                            <ul className="space-y-2 text-sm text-gray-600">
-                              <li className="text-left">• Tab - Move to next cell (right)</li>
-                              <li className="text-left">• Shift + Tab - Move to previous cell (left)</li>
-                              <li className="text-left">• Enter - Move to cell below</li>
-                              <li className="text-left">• Click any cell to start editing</li>
-                            </ul>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </CarouselItem>
-                  <CarouselItem>
-                    <div className="p-1">
-                      <Card>
-                        <CardContent className="flex aspect-square items-center justify-center p-6">
-                          <div className="text-center">
-                            <h3 className="text-lg font-semibold mb-2 text-blue-900">💡 Tips</h3>
-                            <p className="text-blue-800 mb-2 text-sm">
-                              Your contact data has been imported with column headers in row 1. You can now:
-                            </p>
-                            <ul className="text-blue-800 space-y-1 text-sm">
-                              <li className="text-left">• Edit any contact information directly in the cells</li>
-                              <li className="text-left">• Add new contacts by editing empty rows</li>
-                              <li className="text-left">• Use the drag handle above to resize the spreadsheet view</li>
-                              <li className="text-left">• All changes are saved automatically</li>
-                            </ul>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </CarouselItem>
                 </CarouselContent>
               </Carousel>
             </div>
 
-            {/* Right side - Separator Demo */}
             <div className="flex items-center justify-center">
               <div className="w-full max-w-md space-y-8">
                 <div>
@@ -707,11 +650,7 @@ ws.onclose = () => {
                     >
                       Create Message Template
                     </span>
-                    <SeparatorPro
-                      variant="default"
-                      orientation="vertical"
-                      className="h-4"
-                    />
+                    <SeparatorPro variant="default" orientation="vertical" className="h-4" />
                     <span
                       className="hover:underline cursor-pointer"
                       onClick={(e) => {
@@ -721,11 +660,7 @@ ws.onclose = () => {
                     >
                       Preview Message Template
                     </span>
-                    <SeparatorPro
-                      variant="default"
-                      orientation="vertical"
-                      className="h-4"
-                    />
+                    <SeparatorPro variant="default" orientation="vertical" className="h-4" />
                     <span
                       className="hover:underline cursor-pointer"
                       onClick={(e) => {
@@ -738,7 +673,6 @@ ws.onclose = () => {
                   </div>
                 </div>
 
-                {/* Inline Animated Tab */}
                 {activeTab && (
                   <div className="mt-8 animate-in slide-in-from-bottom-4 duration-300" onClick={(e) => e.stopPropagation()}>
                     {activeTab === "create" && (
@@ -761,9 +695,14 @@ ws.onclose = () => {
                                 <Label htmlFor="template-content">Template Content</Label>
                                 <Textarea
                                   id="template-content"
-                                  placeholder="Enter your message template. Use {{name}} for personalization..."
+                                  value={messageTemplate}
+                                  onChange={(e) => setMessageTemplate(e.target.value)}
+                                  placeholder="Enter your message template. Use {{name}}, {{phone}}, {{title}} for personalization..."
                                   rows={4}
                                 />
+                                <p className="text-xs text-gray-500">
+                                  Available variables: {availableColumns.map(col => `{{${col.header.toLowerCase()}}}`).join(', ')}
+                                </p>
                               </div>
                             </CardContent>
                             <CardFooter>
@@ -783,20 +722,32 @@ ws.onclose = () => {
                             <CardContent className="grid gap-6">
                               <div className="grid gap-3">
                                 <Label htmlFor="name-column">Name Column</Label>
-                                <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
-                                  <option>Select column...</option>
-                                  <option>Name (name)</option>
-                                  <option>Phone (phone)</option>
-                                  <option>Email (email)</option>
+                                <select 
+                                  value={selectedNameColumn}
+                                  onChange={(e) => setSelectedNameColumn(Number(e.target.value))}
+                                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  <option value="">Select column...</option>
+                                  {availableColumns.map(col => (
+                                    <option key={col.index} value={col.index}>
+                                      {col.label} - {col.header}
+                                    </option>
+                                  ))}
                                 </select>
                               </div>
                               <div className="grid gap-3">
                                 <Label htmlFor="phone-column">Phone Column</Label>
-                                <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
-                                  <option>Select column...</option>
-                                  <option>Name (name)</option>
-                                  <option>Phone (phone)</option>
-                                  <option>Email (email)</option>
+                                <select 
+                                  value={selectedPhoneColumn}
+                                  onChange={(e) => setSelectedPhoneColumn(Number(e.target.value))}
+                                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  <option value="">Select column...</option>
+                                  {availableColumns.map(col => (
+                                    <option key={col.index} value={col.index}>
+                                      {col.label} - {col.header}
+                                    </option>
+                                  ))}
                                 </select>
                               </div>
                             </CardContent>
@@ -821,8 +772,12 @@ ws.onclose = () => {
                             <div className="text-sm text-gray-600 mb-2">
                               <strong>Sample Message:</strong>
                             </div>
-                            <div className="bg-white border border-gray-200 rounded-lg p-3 text-sm text-gray-800 leading-relaxed">
-                              Hello John Doe! Thank you for being our valued customer. We hope you're enjoying our services.
+                            <div className="bg-white border border-gray-200 rounded-lg p-3 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+                              {extractedContacts.length > 0 ? (
+                                parseTemplate(messageTemplate, extractedContacts[0])
+                              ) : (
+                                <span className="text-gray-500">No contacts to preview. Add data to the spreadsheet.</span>
+                              )}
                             </div>
                             <div className="text-xs text-gray-500 mt-2">
                               Preview shows data from the first contact row
@@ -848,12 +803,12 @@ ws.onclose = () => {
                             <Label htmlFor="contact-range">Select Contact Range</Label>
                             <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
                               <option>Select option...</option>
-                              <option>All Contacts (5)</option>
-                              <option>Valid Phone Numbers (5)</option>
+                              <option>All Contacts ({extractedContacts.length})</option>
+                              <option>Valid Phone Numbers ({extractedContacts.length})</option>
                             </select>
                           </div>
                           <div className="text-sm text-gray-600">
-                            5 contacts imported • Ready for WhatsApp bulk messaging
+                            {extractedContacts.length} contacts imported • Ready for WhatsApp bulk messaging
                           </div>
                         </CardContent>
                         <CardFooter>
@@ -869,7 +824,7 @@ ws.onclose = () => {
 
           <div className="mt-6 flex items-center justify-between">
             <div className="text-sm text-gray-600">
-              {tableData.length} contacts imported • Ready for WhatsApp bulk messaging
+              {extractedContacts.length} contacts imported • Ready for WhatsApp bulk messaging
             </div>
             <Button className="bg-green-600 hover:bg-green-700">
               Send Campaign Message
@@ -878,11 +833,9 @@ ws.onclose = () => {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-slate-900 text-white py-8 ">
+      <footer className="bg-slate-900 text-white py-8">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {/* Company Info */}
             <div className="md:col-span-2">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-semibold">WA</div>
@@ -904,7 +857,6 @@ ws.onclose = () => {
               </div>
             </div>
 
-            {/* Product Links */}
             <div>
               <h3 className="text-lg font-semibold mb-4 text-green-400">Product</h3>
               <ul className="space-y-2">
@@ -915,7 +867,6 @@ ws.onclose = () => {
               </ul>
             </div>
 
-            {/* Support Links */}
             <div>
               <h3 className="text-lg font-semibold mb-4 text-green-400">Support</h3>
               <ul className="space-y-2">
@@ -932,93 +883,6 @@ ws.onclose = () => {
                         <p className="text-sm text-slate-300">
                           Find answers to frequently asked questions, troubleshooting guides, and best practices for using WA Bulk Messenger effectively.
                         </p>
-                        <div className="space-y-2">
-                          <p className="text-xs text-slate-400">Common Topics:</p>
-                          <ul className="text-xs text-slate-300 space-y-1 ml-4">
-                            <li>• File upload issues</li>
-                            <li>• Data cleaning tips</li>
-                            <li>• Message delivery problems</li>
-                            <li>• Account settings</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </li>
-                <li>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button className="text-slate-300 hover:text-white transition-colors text-left">
-                        Documentation
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80">
-                      <div className="space-y-3">
-                        <h4 className="font-semibold text-green-400">Documentation</h4>
-                        <p className="text-sm text-slate-300">
-                          Comprehensive guides and API documentation for developers and advanced users looking to integrate WA Bulk Messenger.
-                        </p>
-                        <div className="space-y-2">
-                          <p className="text-xs text-slate-400">Available Resources:</p>
-                          <ul className="text-xs text-slate-300 space-y-1 ml-4">
-                            <li>• API Reference</li>
-                            <li>• Integration Guides</li>
-                            <li>• Webhook Documentation</li>
-                            <li>• SDK Downloads</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </li>
-                <li>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button className="text-slate-300 hover:text-white transition-colors text-left">
-                        Contact Us
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80">
-                      <div className="space-y-3">
-                        <h4 className="font-semibold text-green-400">Contact Us</h4>
-                        <p className="text-sm text-slate-300">
-                          Need help? Our support team is here to assist you. Get in touch through multiple channels for personalized assistance.
-                        </p>
-                        <div className="space-y-2">
-                          <p className="text-xs text-slate-400">Contact Methods:</p>
-                          <ul className="text-xs text-slate-300 space-y-1 ml-4">
-                            <li>• support@wabulkmessenger.com</li>
-                            <li>• Live chat (9 AM - 6 PM EST)</li>
-                            <li>• WhatsApp: +1 (555) 123-4567</li>
-                            <li>• Response time: less than 2 hours</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </li>
-                <li>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button className="text-slate-300 hover:text-white transition-colors text-left">
-                        Privacy Policy
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80">
-                      <div className="space-y-3">
-                        <h4 className="font-semibold text-green-400">Privacy Policy</h4>
-                        <p className="text-sm text-slate-300">
-                          Your privacy is our priority. Learn how we collect, use, and protect your data in compliance with international privacy standards.
-                        </p>
-                        <div className="space-y-2">
-                          <p className="text-xs text-slate-400">Key Points:</p>
-                          <ul className="text-xs text-slate-300 space-y-1 ml-4">
-                            <li>• GDPR compliant</li>
-                            <li>• End-to-end encryption</li>
-                            <li>• Data retention policies</li>
-                            <li>• Your rights and choices</li>
-                          </ul>
-                        </div>
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -1028,190 +892,9 @@ ws.onclose = () => {
           </div>
 
           <div className="border-t border-slate-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="text-slate-400 hover:text-white text-sm transition-colors">
-                  © 2024 WA 2 Bulk Messenger. All rights reserved.
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <ProfileCard
-                  img="/James_Muriuki_passport_photo.jpg"
-                  name="James Muriuki"
-                  bio="Full-stack developer passionate about creating innovative solutions. Specializing in React, Next.js, and modern web technologies."
-                  position="Founder & Developer"
-                  skills={[
-                    { name: "React", icon: <span>⚛️</span> },
-                    { name: "Next.js", icon: <span>▲</span> },
-                    { name: "TypeScript", icon: <span>🔷</span> },
-                    { name: "Node.js", icon: <span>🟢</span> },
-                    { name: "Python", icon: <span>🐍</span> },
-                    { name: "AWS", icon: <span>☁️</span> },
-                  ]}
-                  socialLinks={[
-                    { name: "GitHub", url: "https://github.com", icon: <span>🐙</span> },
-                    { name: "LinkedIn", url: "https://linkedin.com", icon: <span>💼</span> },
-                    { name: "Twitter", url: "https://twitter.com", icon: <span>🐦</span> },
-                  ]}
-                  spotlight={true}
-                  spotlightColor="34, 197, 94"
-                />
-              </PopoverContent>
-            </Popover>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    className="text-slate-400 hover:text-white text-sm transition-colors"
-                    onClick={() => setCurrentPolicyPage(1)}
-                  >
-                    Terms of Service
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-96 max-h-96 overflow-y-auto">
-                  <div className="space-y-4">
-                    <h4 className="font-semibold text-green-400 text-center">{currentPolicy?.title}</h4>
-                    <div className="space-y-3">
-                      {currentPolicy?.content.map((section, index) => (
-                        <div key={index}>
-                          <h5 className="font-medium text-slate-200 mb-1">{section.heading}</h5>
-                          <p className="text-xs text-slate-300 leading-relaxed">{section.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <Pagination className="mt-4">
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious
-                            onClick={() => setCurrentPolicyPage(Math.max(1, currentPolicyPage - 1))}
-                            className={currentPolicyPage === 1 ? "pointer-events-none opacity-50" : ""}
-                          />
-                        </PaginationItem>
-                        {policies.map((policy) => (
-                          <PaginationItem key={policy.id}>
-                            <PaginationLink
-                              isActive={currentPolicyPage === policy.id}
-                              onClick={() => setCurrentPolicyPage(policy.id)}
-                              className="cursor-pointer"
-                            >
-                              {policy.id}
-                            </PaginationLink>
-                          </PaginationItem>
-                        ))}
-                        <PaginationItem>
-                          <PaginationNext
-                            onClick={() => setCurrentPolicyPage(Math.min(3, currentPolicyPage + 1))}
-                            className={currentPolicyPage === 3 ? "pointer-events-none opacity-50" : ""}
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
-                </PopoverContent>
-              </Popover>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    className="text-slate-400 hover:text-white text-sm transition-colors"
-                    onClick={() => setCurrentPolicyPage(2)}
-                  >
-                    Privacy Policy
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-96 max-h-96 overflow-y-auto">
-                  <div className="space-y-4">
-                    <h4 className="font-semibold text-green-400 text-center">{currentPolicy?.title}</h4>
-                    <div className="space-y-3">
-                      {currentPolicy?.content.map((section, index) => (
-                        <div key={index}>
-                          <h5 className="font-medium text-slate-200 mb-1">{section.heading}</h5>
-                          <p className="text-xs text-slate-300 leading-relaxed">{section.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <Pagination className="mt-4">
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious
-                            onClick={() => setCurrentPolicyPage(Math.max(1, currentPolicyPage - 1))}
-                            className={currentPolicyPage === 1 ? "pointer-events-none opacity-50" : ""}
-                          />
-                        </PaginationItem>
-                        {policies.map((policy) => (
-                          <PaginationItem key={policy.id}>
-                            <PaginationLink
-                              isActive={currentPolicyPage === policy.id}
-                              onClick={() => setCurrentPolicyPage(policy.id)}
-                              className="cursor-pointer"
-                            >
-                              {policy.id}
-                            </PaginationLink>
-                          </PaginationItem>
-                        ))}
-                        <PaginationItem>
-                          <PaginationNext
-                            onClick={() => setCurrentPolicyPage(Math.min(3, currentPolicyPage + 1))}
-                            className={currentPolicyPage === 3 ? "pointer-events-none opacity-50" : ""}
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
-                </PopoverContent>
-              </Popover>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    className="text-slate-400 hover:text-white text-sm transition-colors"
-                    onClick={() => setCurrentPolicyPage(3)}
-                  >
-                    Cookie Policy
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-96 max-h-96 overflow-y-auto">
-                  <div className="space-y-4">
-                    <h4 className="font-semibold text-green-400 text-center">{currentPolicy?.title}</h4>
-                    <div className="space-y-3">
-                      {currentPolicy?.content.map((section, index) => (
-                        <div key={index}>
-                          <h5 className="font-medium text-slate-200 mb-1">{section.heading}</h5>
-                          <p className="text-xs text-slate-300 leading-relaxed">{section.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <Pagination className="mt-4">
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious
-                            onClick={() => setCurrentPolicyPage(Math.max(1, currentPolicyPage - 1))}
-                            className={currentPolicyPage === 1 ? "pointer-events-none opacity-50" : ""}
-                          />
-                        </PaginationItem>
-                        {policies.map((policy) => (
-                          <PaginationItem key={policy.id}>
-                            <PaginationLink
-                              isActive={currentPolicyPage === policy.id}
-                              onClick={() => setCurrentPolicyPage(policy.id)}
-                              className="cursor-pointer"
-                            >
-                              {policy.id}
-                            </PaginationLink>
-                          </PaginationItem>
-                        ))}
-                        <PaginationItem>
-                          <PaginationNext
-                            onClick={() => setCurrentPolicyPage(Math.min(3, currentPolicyPage + 1))}
-                            className={currentPolicyPage === 3 ? "pointer-events-none opacity-50" : ""}
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
+            <p className="text-slate-400 text-sm">
+              © 2024 WA 2 Bulk Messenger. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>
