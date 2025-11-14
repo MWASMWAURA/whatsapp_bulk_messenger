@@ -62,13 +62,13 @@ export default function IntegratedContentManagement() {
   const [selectedNameColumn, setSelectedNameColumn] = useState(0);
   const [selectedPhoneColumn, setSelectedPhoneColumn] = useState(1);
   const [messageTemplate, setMessageTemplate] = useState('Hello {{name}}! Your phone is {{phone}}.');
+  const [defaultCountryCode, setDefaultCountryCode] = useState('254');
 
   const addLog = (message, type = 'info') => {
     const time = new Date().toLocaleTimeString();
     setActivityLogs(prev => [...prev, { time, message, type }]);
   };
 
-  // MOVE getColumnLabel HERE - before any useMemo that uses it
   const getColumnLabel = (index) => {
     if (index < 26) return String.fromCharCode(65 + index);
     return String.fromCharCode(64 + Math.floor(index / 26)) + String.fromCharCode(65 + (index % 26));
@@ -219,7 +219,6 @@ export default function IntegratedContentManagement() {
     setExcelCells(newCells);
   }, []);
 
-  // Dynamically detect available columns from row 0 (headers)
   const availableColumns = useMemo(() => {
     const cols = [];
     for (let i = 0; i < 26; i++) {
@@ -235,7 +234,6 @@ export default function IntegratedContentManagement() {
     return cols;
   }, [excelCells]);
 
-  // Extract real contacts with ALL columns dynamically
   const extractedContacts = useMemo(() => {
     const contacts = [];
     
@@ -247,7 +245,6 @@ export default function IntegratedContentManagement() {
           phone: phone.trim(),
         };
         
-        // Dynamically add all columns to the contact object
         availableColumns.forEach(col => {
           const value = excelCells[`${row}-${col.index}`];
           contact[col.header.toLowerCase()] = (value || '').trim();
@@ -260,13 +257,11 @@ export default function IntegratedContentManagement() {
     return contacts;
   }, [excelCells, selectedPhoneColumn, availableColumns]);
 
-  // Parse template and replace variables with actual data
   const parseTemplate = (template, contact) => {
     if (!contact) return template;
     
     let parsed = template;
     
-    // Replace all {{columnName}} with actual values
     availableColumns.forEach(col => {
       const placeholder = new RegExp(`{{${col.header.toLowerCase()}}}`, 'gi');
       const value = contact[col.header.toLowerCase()] || `[${col.header}]`;
@@ -276,7 +271,122 @@ export default function IntegratedContentManagement() {
     return parsed;
   };
 
-  // WebSocket connection for QR code
+  // Format phone number for WhatsApp (remove + and ensure country code)
+  const formatPhoneForWhatsApp = (phone) => {
+  if (!phone) return '';
+  
+  // Remove all non-digit characters
+  let cleaned = phone.replace(/\D/g, '');
+  
+  // Remove leading zeros
+  cleaned = cleaned.replace(/^0+/, '');
+  
+  // If it doesn't start with a country code, add the default one
+  if (!cleaned.startsWith(defaultCountryCode)) {
+    cleaned = defaultCountryCode + cleaned;
+  }
+  
+  // Ensure it's at least 10 digits (without country code)
+  if (cleaned.length < 12) { // 254 (3 digits) + 9 digits minimum
+    console.warn('Phone number too short:', phone, '→', cleaned);
+  }
+  
+  return cleaned;
+};
+
+  // Send campaign function
+ const handleSendCampaign = async () => {
+  if (qrStatus !== 'connected') {
+    alert('Please connect WhatsApp first!');
+    return;
+  }
+
+  if (extractedContacts.length === 0) {
+    alert('No contacts to send messages to!');
+    return;
+  }
+
+  if (!messageTemplate.trim()) {
+    alert('Please create a message template first!');
+    return;
+  }
+
+  const confirmed = confirm(
+    `Send messages to ${extractedContacts.length} contacts?\n\n` +
+    `Preview: ${parseTemplate(messageTemplate, extractedContacts[0]).substring(0, 100)}...`
+  );
+
+  if (!confirmed) return;
+
+  addLog(`Starting campaign to ${extractedContacts.length} contacts...`, 'info');
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (let i = 0; i < extractedContacts.length; i++) {
+    const contact = extractedContacts[i];
+    const message = parseTemplate(messageTemplate, contact);
+    const formattedPhone = formatPhoneForWhatsApp(contact.phone);
+
+    // Add this debug line:
+console.log('Original phone:', contact.phone, '→ Formatted:', formattedPhone);
+
+       try {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        // Create a promise that waits for the server response
+        const sendPromise = new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Timeout waiting for response'));
+          }, 10000); // 10 second timeout
+
+          // Create a temporary message handler
+          const messageHandler = (event) => {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'message-sent' && data.to === formattedPhone) {
+              clearTimeout(timeout);
+              ws.removeEventListener('message', messageHandler);
+              resolve(data);
+            } else if (data.type === 'message-error') {
+              clearTimeout(timeout);
+              ws.removeEventListener('message', messageHandler);
+              reject(new Error(data.error));
+            }
+          };
+
+          ws.addEventListener('message', messageHandler);
+          
+          // Send the message
+          ws.send(JSON.stringify({
+            type: 'send-message',
+            phone: formattedPhone,
+            message: message
+          }));
+        });
+
+        // Wait for the server response
+        await sendPromise;
+        
+        successCount++;
+        addLog(`✓ Sent to ${contact.name || formattedPhone}`, 'success');
+        
+        // Wait 2 seconds before next message
+        await new Promise(resolve => setTimeout(resolve, 4000));
+      } else {
+        throw new Error('WebSocket disconnected');
+      }
+    } catch (error) {
+      failCount++;
+      addLog(`✗ Failed to send to ${contact.name || formattedPhone}: ${error.message}`, 'error');
+    }
+  }
+
+  addLog(`Campaign complete! ✓ ${successCount} sent, ✗ ${failCount} failed`, 
+         failCount > 0 ? 'error' : 'success');
+  
+  alert(`Campaign Complete!\n\nSuccessful: ${successCount}\nFailed: ${failCount}`);
+};
+
   useEffect(() => {
     const ws = new WebSocket('ws://localhost:3000');
 
@@ -305,6 +415,12 @@ export default function IntegratedContentManagement() {
           setQrCode(null);
           setQrStatus('disconnected');
           addLog('Logged out successfully. Waiting for new connection...', 'info');
+          break;
+        case 'message-sent':
+          addLog(`✓ Message delivered to ${data.phone}`, 'success');
+          break;
+        case 'message-failed':
+          addLog(`✗ Failed to send to ${data.phone}: ${data.error}`, 'error');
           break;
         case 'status':
           console.log('Status:', data.message);
@@ -826,8 +942,14 @@ export default function IntegratedContentManagement() {
             <div className="text-sm text-gray-600">
               {extractedContacts.length} contacts imported • Ready for WhatsApp bulk messaging
             </div>
-            <Button className="bg-green-600 hover:bg-green-700">
-              Send Campaign Message
+            <Button 
+              className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleSendCampaign}
+              disabled={qrStatus !== 'connected' || extractedContacts.length === 0}
+            >
+              {qrStatus !== 'connected' ? '⚠️ WhatsApp Not Connected' : 
+               extractedContacts.length === 0 ? '⚠️ No Contacts' : 
+               '📤 Send Campaign Message'}
             </Button>
           </div>
         </div>
