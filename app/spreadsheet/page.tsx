@@ -467,7 +467,7 @@ ws.onclose = () => {
               <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
                 <Smartphone className="w-8 h-8 text-gray-400 mb-2" />
                 <p className="text-xs text-gray-600 text-center mb-2">Scan QR Code</p>
-                <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200 overflow-hidden">
+                <div className="w-52 h-52 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200 overflow-hidden">
                   {qrCode ? (
                     qrCode.startsWith('data:image/') ? (
                       <img
