@@ -366,11 +366,19 @@ console.log('Original phone:', contact.phone, '→ Formatted:', formattedPhone);
         const sendPromise = new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error('Timeout waiting for response'));
-          }, 10000); // 10 second timeout
+          }, 30000); // 30 second timeout
 
           // Create a temporary message handler
           const messageHandler = (event: any) => {
             const data = JSON.parse(event.data);
+
+            // ✅ ADD THIS: Check for disconnection
+    if (data.type === 'error' && data.message.includes('disconnected')) {
+      clearTimeout(timeout);
+      ws.removeEventListener('message', messageHandler);
+      reject(new Error('WhatsApp disconnected'));
+      return;
+    }
             
             if (data.type === 'message-sent' && data.to === formattedPhone) {
               clearTimeout(timeout);
@@ -749,21 +757,79 @@ useEffect(() => {
             <span className="font-medium">WhatsApp Connect</span>
             <div className="ml-auto flex items-center gap-2">
               {qrStatus === 'connected' && (
-                <button
-                  onClick={() => {
-                    if (confirm('Are you sure you want to logout?')) {
-                      if (ws && ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify({ type: 'logout' }));
-                      }
-                      setQrStatus('disconnected');
-                      setQrCode(null);
-                    }
-                  }}
-                  className="text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition-colors"
-                >
-                  🚪 Logout
-                </button>
-              )}
+                <div className="flex items-center gap-2">
+    <button
+      onClick={() => {
+        if (confirm('Are you sure you want to logout?')) {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            addLog('Logging out...', 'info');
+            
+            // Set a timeout for logout
+            const logoutTimeout = setTimeout(() => {
+              addLog('⚠️ Logout taking too long, forcing disconnect...', 'error');
+              setQrStatus('disconnected');
+              setQrCode(null);
+              
+              // Force close and reconnect WebSocket
+              if (ws) {
+                ws.close();
+              }
+              
+              // Reload page to start fresh
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
+            }, 10000); // 10 second timeout
+            
+            // Send logout command
+            ws.send(JSON.stringify({ type: 'logout' }));
+            
+            // Listen for logout confirmation
+            const logoutHandler = (event: MessageEvent) => {
+              const data = JSON.parse(event.data);
+              if (data.type === 'logged-out') {
+                clearTimeout(logoutTimeout);
+                ws.removeEventListener('message', logoutHandler);
+                setQrStatus('disconnected');
+                setQrCode(null);
+                addLog('✅ Logged out successfully', 'success');
+              }
+            };
+            
+            ws.addEventListener('message', logoutHandler);
+          }
+        }
+      }}
+      className="text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition-colors"
+    >
+      🚪 Logout
+    </button>
+    
+    {/* ✅ NEW: Force logout button */}
+    <button
+      onClick={() => {
+        if (confirm('Force disconnect? This will close the connection immediately.')) {
+          addLog('🔌 Force disconnecting...', 'info');
+          setQrStatus('disconnected');
+          setQrCode(null);
+          
+          if (ws) {
+            ws.close();
+          }
+          
+          // Reload page
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }
+      }}
+      className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded transition-colors"
+      title="Force disconnect without waiting"
+    >
+      ⚡
+    </button>
+  </div>
+)}
               <div className="text-xs bg-white/20 dark:bg-black/20 text-black dark:text-white px-2 py-1 rounded">
                 Help Center
               </div>
