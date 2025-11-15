@@ -39,6 +39,7 @@ export function FileUpload({ onDataImported }: FileUploadProps) {
 
           if (data.length > 0) {
             const columns: ColumnDef<TableData>[] = Object.keys(data[0]).map(key => ({
+              accessorKey: key,
               accessorFn: (row) => row[key],
               header: key,
               id: key,
@@ -78,6 +79,7 @@ export function FileUpload({ onDataImported }: FileUploadProps) {
             setTableData(parsedData);
 
             const columns: ColumnDef<TableData>[] = headers.map(header => ({
+              accessorKey: header,
               accessorFn: (row) => row[header],
               header: header,
               id: header,
