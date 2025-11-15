@@ -558,98 +558,149 @@ useEffect(() => {
   };
 }, []);
   useEffect(() => {
-    const fingerprint = getOrCreateFingerprint();
-    // DEBUG: Log the fingerprint
+  const fingerprint = getOrCreateFingerprint();
   console.log('=== FINGERPRINT DEBUG ===');
   console.log('Raw fingerprint:', fingerprint);
   console.log('Fingerprint length:', fingerprint.length);
   console.log('Browser:', navigator.userAgent.includes('Edg') ? 'Edge' : 
               navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Other');
   console.log('========================');
-    // Get WebSocket URL from environment variable
-  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000';
-    const ws = new WebSocket(wsUrl);
+  
+  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'wss://whatsapp-bulk-messenger-backend.onrender.com';
+  console.log('🔌 Connecting to:', wsUrl);
+  
+  const ws = new WebSocket(wsUrl);
+  
+  // ✅ ADD: Heartbeat to keep connection alive
+  let heartbeatInterval: NodeJS.Timeout;
+  let waitingForQR = true;
 
-    ws.onopen = () => {
-      console.log('WebSocket connected - initializing session');
-      setQrStatus('connecting');
-      
-      // Send fingerprint to initialize session
-      ws.send(JSON.stringify({
-        type: 'init',
-        fingerprint: fingerprint
-      }));
-    };
+  ws.onopen = () => {
+    console.log('✅ WebSocket connected - initializing session');
+    setQrStatus('connecting');
+    
+    // Send fingerprint to initialize session
+    ws.send(JSON.stringify({
+      type: 'init',
+      fingerprint: fingerprint
+    }));
+    
+    addLog('Connected to server, waiting for QR code...', 'info');
+    
+    // ✅ Send heartbeat every 25 seconds to keep connection alive
+    heartbeatInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        console.log('💓 Sending heartbeat');
+        ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 25000);
+  };
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      switch(data.type) {
-        case 'qr':
-          setQrCode(data.qr);
-          setQrStatus('connecting');
-          addLog('QR Code received. Please scan with WhatsApp.', 'info');
-          break;
-        case 'session-created':
-          console.log('New session created:', data.sessionId);
-          addLog(`Session created: ${data.sessionId}`, 'success');
-          break;
-        case 'session-restored':
-          console.log('Session restored:', data.sessionId);
-          addLog(`Session restored: ${data.sessionId}`, 'success');
-          break;
-        case 'ready':
-          setQrStatus('connected');
-          addLog('WhatsApp connected successfully!', 'success');
-          break;
-        case 'logout-started':
-          addLog('Logout initiated...', 'info');
-          break;
-        case 'logged-out':
-          setQrCode(null);
-          setQrStatus('disconnected');
-          addLog('Logged out successfully. Waiting for new connection...', 'info');
-          break;
-        case 'message-sent':
-          addLog(`✓ Message delivered to ${data.phone}`, 'success');
-          break;
-        case 'message-failed':
-          addLog(`✗ Failed to send to ${data.phone}: ${data.error}`, 'error');
-          break;
-        case 'status':
-          console.log('Status:', data.message);
-          addLog(data.message, 'info');
-          break;
-        case 'error':
-          console.error('Error:', data.message);
-          // Only show errors that aren't normal status updates
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    
+    switch(data.type) {
+      case 'qr':
+        waitingForQR = false; // ✅ QR received
+        console.log('📱 QR Code received! Length:', data.qr?.length);
+        setQrCode(data.qr);
+        setQrStatus('connecting');
+        addLog('✅ QR Code received. Please scan with WhatsApp.', 'success');
+        break;
+        
+      case 'pong':
+        console.log('💓 Heartbeat acknowledged');
+        break;
+        
+      case 'session-created':
+        console.log('New session created:', data.sessionId);
+        addLog(`Session created: ${data.sessionId}`, 'success');
+        break;
+        
+      case 'session-restored':
+        console.log('Session restored:', data.sessionId);
+        addLog(`Session restored: ${data.sessionId}`, 'success');
+        break;
+        
+      case 'ready':
+        setQrCode(null);
+        setQrStatus('connected');
+        addLog('WhatsApp connected successfully!', 'success');
+        break;
+        
+      case 'logout-started':
+        addLog('Logout initiated...', 'info');
+        break;
+        
+      case 'logged-out':
+        setQrCode(null);
+        setQrStatus('disconnected');
+        addLog('Logged out successfully. Waiting for new connection...', 'info');
+        break;
+        
+      case 'message-sent':
+        addLog(`✓ Message delivered to ${data.phone}`, 'success');
+        break;
+        
+      case 'message-failed':
+        addLog(`✗ Failed to send to ${data.phone}: ${data.error}`, 'error');
+        break;
+        
+      case 'status':
+        console.log('Status:', data.message);
+        addLog(data.message, 'info');
+        break;
+        
+      case 'error':
+        console.error('Error:', data.message);
+        // Only show errors that aren't normal status updates
         if (!data.message.includes('desconnectedMobile') && 
             !data.message.includes('notLogged')) {
           addLog(`Error: ${data.message}`, 'error');
           setQrStatus('error');
         }
         break;
-        default:
+        
+      case 'disconnected':
+        console.error('⚠️ WhatsApp disconnected:', data.message);
+        setQrCode(null);
+        setQrStatus('disconnected');
+        addLog(`⚠️ ${data.message}`, 'error');
+        
+        if (confirm('WhatsApp disconnected. Reconnect now?')) {
+          window.location.reload();
+        }
+        break;
+        
+      default:
         console.log('❓ Unknown message type:', data.type);
-      }
-    };
+    }
+  };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      addLog('Connection error. Make sure the backend is running.', 'error');
-      setQrStatus('error');
-    };
+  ws.onerror = (error) => {
+    console.error('WebSocket error:', error);
+    clearInterval(heartbeatInterval);
+    addLog('Connection error. Check console.', 'error');
+    setQrStatus('error');
+  };
 
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-      addLog('WebSocket disconnected', 'error');
-      setQrStatus('disconnected');
-    };
+  ws.onclose = (event) => {
+    console.log('🔌 WebSocket closed. Code:', event.code, 'Reason:', event.reason);
+    clearInterval(heartbeatInterval);
     
-    setWs(ws);
+    if (waitingForQR) {
+      addLog('⚠️ Connection closed while waiting for QR. Please refresh to retry.', 'error');
+    } else {
+      addLog('WebSocket disconnected', 'error');
+    }
+    setQrStatus('disconnected');
+  };
+  
+  setWs(ws);
 
-    return () => {
+  return () => {
     console.log('🧹 Cleaning up WebSocket connection');
+    clearInterval(heartbeatInterval);
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.close();
     }
