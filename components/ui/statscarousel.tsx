@@ -91,8 +91,7 @@ export default function StatsCarouselCount({
   const [items, setItems] = useState(initialStats);
   const [triggerCounter, setTriggerCounter] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const isDragMode = animation === "drag";
 

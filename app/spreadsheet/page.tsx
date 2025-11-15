@@ -27,7 +27,7 @@ import ProfileCard from "@/components/ui/profilecard";
 import { MessageSquare, Mail, Phone, HelpCircle, Smartphone } from "lucide-react";
 import ExpandableDock from "@/components/ui/expandable-dock";
 
-function Label({ children, htmlFor }) {
+function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
   return (
     <label
       htmlFor={htmlFor}
@@ -38,7 +38,7 @@ function Label({ children, htmlFor }) {
   );
 }
 
-function Textarea(props) {
+function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
       {...props}
@@ -48,14 +48,14 @@ function Textarea(props) {
 }
 
 export default function IntegratedContentManagement() {
-  const [excelCells, setExcelCells] = useState({});
-  const [selectedExcelCell, setSelectedExcelCell] = useState(null);
-  const [activeTab, setActiveTab] = useState(null);
+  const [excelCells, setExcelCells] = useState<{ [key: string]: string }>({});
+  const [selectedExcelCell, setSelectedExcelCell] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
   const [currentPolicyPage, setCurrentPolicyPage] = useState(1);
-  const [qrCode, setQrCode] = useState(null);
+  const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrStatus, setQrStatus] = useState('disconnected');
-  const [ws, setWs] = useState(null);
-  const excelInputRefs = useRef({});
+  const [ws, setWs] = useState<WebSocket | null>(null);
+  const excelInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const [activityLogs, setActivityLogs] = useState([
     { time: '--:--:--', message: 'Waiting for connection...', type: 'info' }
   ]);
@@ -64,12 +64,11 @@ export default function IntegratedContentManagement() {
   const [messageTemplate, setMessageTemplate] = useState('Hello {{name}}! Your phone is {{phone}}.');
   const [defaultCountryCode, setDefaultCountryCode] = useState('254');
 
-  const addLog = (message, type = 'info') => {
+  const addLog = (message: string, type: string = 'info') => {
     const time = new Date().toLocaleTimeString();
     setActivityLogs(prev => [...prev, { time, message, type }]);
   };
-
-  const getColumnLabel = (index) => {
+const getColumnLabel = (index: number) => {
     if (index < 26) return String.fromCharCode(65 + index);
     return String.fromCharCode(64 + Math.floor(index / 26)) + String.fromCharCode(65 + (index % 26));
   };
@@ -220,23 +219,34 @@ const [tableColumns, setTableColumns] = useState(() => {
 });
 
   useEffect(() => {
-    const newCells = {};
-    tableColumns.forEach((col, colIndex) => {
-      if (colIndex < 26) {
-        newCells[`0-${colIndex}`] = col.header;
+  // Import table data to Excel spreadsheet
+  const newCells: { [key: string]: string } = { ...excelCells };
+
+  // Clear existing data first
+  Object.keys(newCells).forEach(key => {
+    newCells[key] = '';
+  });
+
+  // Import column headers (first row)
+  tableColumns.forEach((col: any, colIndex: number) => {
+    if (colIndex < 26) { // Limit to 26 columns (A-Z)
+      newCells[`0-${colIndex}`] = col.header;
+    }
+  });
+
+  // Import data rows
+  tableData.forEach((row: any, rowIndex: number) => {
+    const excelRow = rowIndex + 1; // Start from row 1 (row 0 is headers)
+    tableColumns.forEach((col: any, colIndex: number) => {
+      if (colIndex < 26 && excelRow < 1000) { // Limit bounds
+        const columnKey = col.accessorKey;
+        newCells[`${excelRow}-${colIndex}`] = String(row[columnKey] || '');
       }
     });
-    tableData.forEach((row, rowIndex) => {
-      const excelRow = rowIndex + 1;
-      tableColumns.forEach((col, colIndex) => {
-        if (colIndex < 26 && excelRow < 1000) {
-          const columnKey = col.accessorKey;
-          newCells[`${excelRow}-${colIndex}`] = String(row[columnKey] || '');
-        }
-      });
-    });
-    setExcelCells(newCells);
-  }, [tableData, tableColumns]); // Re-run when data changes
+  });
+
+  setExcelCells(newCells);
+}, [tableData, tableColumns]); // Re-run when data changes
 
   const availableColumns = useMemo(() => {
     const cols = [];
@@ -254,13 +264,13 @@ const [tableColumns, setTableColumns] = useState(() => {
   }, [excelCells]);
 
   const extractedContacts = useMemo(() => {
-    const contacts = [];
+    const contacts: { [key: string]: string }[] = [];
     
     for (let row = 1; row < 100; row++) {
       const phone = excelCells[`${row}-${selectedPhoneColumn}`];
       
       if (phone && phone.trim()) {
-        const contact = {
+        const contact: { [key: string]: string } = {
           phone: phone.trim(),
         };
         
@@ -276,7 +286,7 @@ const [tableColumns, setTableColumns] = useState(() => {
     return contacts;
   }, [excelCells, selectedPhoneColumn, availableColumns]);
 
-  const parseTemplate = (template, contact) => {
+  const parseTemplate = (template: any, contact: any) => {
     if (!contact) return template;
     
     let parsed = template;
@@ -291,7 +301,7 @@ const [tableColumns, setTableColumns] = useState(() => {
   };
 
   // Format phone number for WhatsApp (remove + and ensure country code)
-  const formatPhoneForWhatsApp = (phone) => {
+  const formatPhoneForWhatsApp = (phone: any) => {
   if (!phone) return '';
   
   // Remove all non-digit characters
@@ -359,7 +369,7 @@ console.log('Original phone:', contact.phone, '→ Formatted:', formattedPhone);
           }, 10000); // 10 second timeout
 
           // Create a temporary message handler
-          const messageHandler = (event) => {
+          const messageHandler = (event: any) => {
             const data = JSON.parse(event.data);
             
             if (data.type === 'message-sent' && data.to === formattedPhone) {
@@ -396,7 +406,8 @@ console.log('Original phone:', contact.phone, '→ Formatted:', formattedPhone);
       }
     } catch (error) {
       failCount++;
-      addLog(`✗ Failed to send to ${contact.name || formattedPhone}: ${error.message}`, 'error');
+      const err = error as Error;
+      addLog(`✗ Failed to send to ${contact.name || formattedPhone}: ${err.message}`, 'error');
     }
   }
 
@@ -410,10 +421,15 @@ console.log('Original phone:', contact.phone, '→ Formatted:', formattedPhone);
 function generateBrowserFingerprint() {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  ctx.textBaseline = 'top';
-  ctx.font = '14px Arial';
-  ctx.fillText('fingerprint', 2, 2);
-  const canvasData = canvas.toDataURL();
+  let canvasData = '';
+  if (ctx !== null) {
+    ctx.textBaseline = 'top';
+    ctx.font = '14px Arial';
+    ctx.fillText('fingerprint', 2, 2);
+    canvasData = canvas.toDataURL();
+  } else {
+    canvasData = 'no-2d-context';
+  }
 
   // Detect browser type
   const getBrowserName = () => {
@@ -431,9 +447,9 @@ function generateBrowserFingerprint() {
   const getWebGLFingerprint = () => {
     try {
       const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      const gl = canvas.getContext('webgl') as WebGLRenderingContext | null || canvas.getContext('experimental-webgl') as WebGLRenderingContext | null;
       if (!gl) return 'no-webgl';
-      
+
       const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
       if (debugInfo) {
         return `${gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL)}_${gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)}`;
@@ -471,7 +487,7 @@ function generateBrowserFingerprint() {
     
     // Hardware
     hardwareConcurrency: navigator.hardwareConcurrency || 0,
-    deviceMemory: navigator.deviceMemory || 'unknown',
+    deviceMemory: (navigator as any).deviceMemory || 'unknown',
     
     // Canvas and WebGL
     canvas: canvasData.substring(0, 150),
@@ -625,32 +641,32 @@ useEffect(() => {
     }
   };
 }, []);
-  const handleExcelCellChange = (row, col, value) => {
+  const handleExcelCellChange = (row: number, col: number, value: string) => {
     setExcelCells(prev => ({
       ...prev,
       [`${row}-${col}`]: value
     }));
   };
 
-  const handleExcelKeyDown = (e, row, col) => {
+  const handleExcelKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, row: number, col: number) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       const nextRow = row + 1;
       const nextKey = `${nextRow}-${col}`;
       if (excelInputRefs.current[nextKey]) {
-        excelInputRefs.current[nextKey].focus();
+        excelInputRefs.current[nextKey]?.focus();
       }
     } else if (e.key === 'Tab') {
       e.preventDefault();
       const nextCol = e.shiftKey ? col - 1 : col + 1;
       const nextKey = `${row}-${nextCol}`;
       if (excelInputRefs.current[nextKey]) {
-        excelInputRefs.current[nextKey].focus();
+        excelInputRefs.current[nextKey]?.focus();
       }
     }
   };
 
-  const handleOutsideClick = (e) => {
+  const handleOutsideClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       setActiveTab(null);
     }

@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { FileUpload } from "@/components/file-upload";
 import { ExcelSpreadsheet } from "@/components/excel-spreadsheet";
+import Papa from "papaparse"; // ← ADD THIS
+import * as XLSX from "xlsx"; // ← ADD THIS
+import { toast } from "@/components/ui/toast";
 
+const [isDataUploaded, setIsDataUploaded] = useState(false);
 interface TableData {
   [key: string]: string | number;
 }
@@ -30,10 +34,10 @@ export default function FolderDemo() {
           setTableData(data);
 
           if (data.length > 0) {
-            const columns: ColumnDef<TableData>[] = Object.keys(data[0]).map(key => ({
+            const columns: ColumnDef[] = Object.keys(data[0]).map(key => ({
               accessorKey: key,
               header: key,
-              cell: ({ getValue }) => getValue(),
+              cell: ({ getValue }: any) => getValue(),
             }));
             setTableColumns(columns);
             setIsDataUploaded(true);
@@ -68,10 +72,10 @@ export default function FolderDemo() {
 
             setTableData(parsedData);
 
-            const columns: ColumnDef<TableData>[] = headers.map(header => ({
+            const columns: ColumnDef[] = headers.map(header => ({
               accessorKey: header,
               header: header,
-              cell: ({ getValue }) => getValue(),
+              cell: ({ getValue }: any) => getValue(),
             }));
             setTableColumns(columns);
             setIsDataUploaded(true);

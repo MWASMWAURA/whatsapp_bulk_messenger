@@ -145,7 +145,7 @@ export default function ProfileCard({
       }
     }
     if (React.isValidElement(skill.icon)) {
-      return React.cloneElement(skill.icon as React.ReactElement, { className: "w-5 h-5" });
+      return React.cloneElement(skill.icon as React.ReactElement<{ className?: string }>, { className: "w-5 h-5" });
     }
     if (typeof skill.icon === 'function') {
       const IconComponent = skill.icon;
@@ -208,7 +208,7 @@ export default function ProfileCard({
                     if (typeof social.icon === 'string') {
                       return <Image src={social.icon} alt={social.name} fill className="object-contain" />;
                     } else if (React.isValidElement(social.icon)) {
-                      return React.cloneElement(social.icon as React.ReactElement, { className: "w-5 h-5", width: 20, height: 20 });
+                      return React.cloneElement(social.icon as React.ReactElement<{ className?: string; width?: number; height?: number }>, { className: "w-5 h-5", width: 20, height: 20 });
                     } else if (typeof social.icon === 'function') {
                       const IconComponent = social.icon;
                       return <IconComponent className="w-5 h-5" />;

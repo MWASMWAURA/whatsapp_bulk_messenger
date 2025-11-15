@@ -292,8 +292,7 @@ export function ExcelSpreadsheet({ tableData, tableColumns, onClose }: ExcelSpre
       }
     }
   };
-
-  const getColumnLabel = (index: number) => {
+const getColumnLabel = (index: number) => {
     if (index < 26) return String.fromCharCode(65 + index);
     return String.fromCharCode(64 + Math.floor(index / 26)) + String.fromCharCode(65 + (index % 26));
   };

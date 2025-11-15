@@ -11,9 +11,17 @@ export const Gravity = ({
   className?: string;
 }) => {
   const [mounted, setMounted] = useState(false);
-  const [rockets, setRockets] = useState()
-    { horizontal: number; verticalUp: number; verticalDown: number; angleDeg: number; duration: number; delay: number; fallDelay: number }[]
-  >([]);
+  type Rocket = {
+  horizontal: number;
+  verticalUp: number;
+  verticalDown: number;
+  angleDeg: number;
+  duration: number;
+  delay: number;
+  fallDelay: number;
+};
+
+const [rockets, setRockets] = useState<Rocket[]>([]);
 
   useEffect(() => {
     setMounted(true);

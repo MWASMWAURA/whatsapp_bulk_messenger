@@ -3,6 +3,7 @@ import { motion, HTMLMotionProps } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface VercelCardProps extends Omit<HTMLMotionProps<"div">, "whileHover" | "transition"> {
+  children: React.ReactNode;
   showIcons?: boolean;
   iconClassName?: string;
   animateOnHover?: boolean;

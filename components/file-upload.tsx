@@ -15,12 +15,12 @@ interface TableData {
 }
 
 interface FileUploadProps {
-  onDataImported: (data: TableData[], columns: ColumnDef<TableData>[]) => void;
+  onDataImported: (data: TableData[], columns: any[]) => void;
 }
 
 export function FileUpload({ onDataImported }: FileUploadProps) {
   const [tableData, setTableData] = useState<TableData[]>([]);
-  const [tableColumns, setTableColumns] = useState<ColumnDef<TableData>[]>([]);
+  const [tableColumns, setTableColumns] = useState<any[]>([]);
   const [isDataUploaded, setIsDataUploaded] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [selectedColumns, setSelectedColumns] = useState<Set<string>>(new Set());
@@ -39,8 +39,9 @@ export function FileUpload({ onDataImported }: FileUploadProps) {
 
           if (data.length > 0) {
             const columns: ColumnDef<TableData>[] = Object.keys(data[0]).map(key => ({
-              accessorKey: key,
+              accessorFn: (row) => row[key],
               header: key,
+              id: key,
               cell: ({ getValue }) => getValue(),
             }));
             setTableColumns(columns);
@@ -77,8 +78,9 @@ export function FileUpload({ onDataImported }: FileUploadProps) {
             setTableData(parsedData);
 
             const columns: ColumnDef<TableData>[] = headers.map(header => ({
-              accessorKey: header,
+              accessorFn: (row) => row[header],
               header: header,
+              id: header,
               cell: ({ getValue }) => getValue(),
             }));
             setTableColumns(columns);
@@ -186,7 +188,7 @@ export function FileUpload({ onDataImported }: FileUploadProps) {
       return;
     }
 
-    const phoneColumnKey = (tableColumns[phoneColumnIndex] as any).accessorKey;
+    const phoneColumnKey = tableColumns[phoneColumnIndex].id;
     const formattedData = tableData.map(row => {
       const phoneValue = String(row[phoneColumnKey] || '');
       const formattedPhone = formatKenyanPhoneNumber(phoneValue);
@@ -305,7 +307,7 @@ export function FileUpload({ onDataImported }: FileUploadProps) {
       selectedColumns.forEach(col => delete newRow[col]);
       return newRow;
     });
-    const newColumns = tableColumns.filter(col => !selectedColumns.has((col as any).accessorKey));
+    const newColumns = tableColumns.filter(col => !selectedColumns.has(col.id));
     setTableData(newData);
     setTableColumns(newColumns);
     setSelectedColumns(new Set());
@@ -327,8 +329,8 @@ export function FileUpload({ onDataImported }: FileUploadProps) {
     });
 
     const newColumns = tableColumns.map(col =>
-      (col as any).accessorKey === oldKey
-        ? { ...col, accessorKey: newKey, header: newKey }
+      col.id === oldKey
+        ? { ...col, id: newKey, header: newKey }
         : col
     );
 
@@ -372,7 +374,7 @@ export function FileUpload({ onDataImported }: FileUploadProps) {
     const [newName, setNewName] = useState(column.header as string);
 
     const handleRename = () => {
-      renameColumn((column as any).accessorKey, newName);
+      renameColumn(column.id!, newName);
       setIsRenaming(false);
     };
 
@@ -402,8 +404,8 @@ export function FileUpload({ onDataImported }: FileUploadProps) {
       <div className="flex items-center gap-2">
         <input
           type="checkbox"
-          checked={selectedColumns.has((column as any).accessorKey)}
-          onChange={() => toggleColumnSelection((column as any).accessorKey)}
+          checked={selectedColumns.has(column.id!)}
+          onChange={() => toggleColumnSelection(column.id!)}
           className="w-4 h-4"
         />
         <span
