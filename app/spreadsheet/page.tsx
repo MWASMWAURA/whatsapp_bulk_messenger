@@ -387,12 +387,136 @@ console.log('Original phone:', contact.phone, '→ Formatted:', formattedPhone);
   alert(`Campaign Complete!\n\nSuccessful: ${successCount}\nFailed: ${failCount}`);
 };
 
+  // Generate unique browser fingerprint
+function generateBrowserFingerprint() {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.textBaseline = 'top';
+  ctx.font = '14px Arial';
+  ctx.fillText('fingerprint', 2, 2);
+  const canvasData = canvas.toDataURL();
+
+  // Detect browser type
+  const getBrowserName = () => {
+    const ua = navigator.userAgent;
+    if (ua.includes('Firefox')) return 'Firefox';
+    if (ua.includes('Edg')) return 'Edge';
+    if (ua.includes('Chrome')) return 'Chrome';
+    if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+    if (ua.includes('Opera') || ua.includes('OPR')) return 'Opera';
+    return 'Unknown';
+  };
+
+
+  // Get WebGL fingerprint for more uniqueness
+  const getWebGLFingerprint = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (!gl) return 'no-webgl';
+      
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      if (debugInfo) {
+        return `${gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL)}_${gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)}`;
+      }
+      return gl.getParameter(gl.VERSION);
+    } catch (e) {
+      return 'webgl-error';
+    }
+  };
+
+  const fingerprint = {
+    // Browser identification
+    browserName: getBrowserName(),
+    userAgent: navigator.userAgent,
+    
+    // Language settings
+    language: navigator.language,
+    languages: navigator.languages?.join(',') || navigator.language,
+    
+    // Platform and device
+    platform: navigator.platform,
+    vendor: navigator.vendor || '',
+    maxTouchPoints: navigator.maxTouchPoints || 0,
+    
+    // Screen details
+    screenResolution: `${screen.width}x${screen.height}`,
+    screenAvail: `${screen.availWidth}x${screen.availHeight}`,
+    colorDepth: screen.colorDepth,
+    pixelDepth: screen.pixelDepth || screen.colorDepth,
+    screenOrientation: screen.orientation?.type || 'unknown',
+    
+    // Timezone
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timezoneOffset: new Date().getTimezoneOffset(),
+    
+    // Hardware
+    hardwareConcurrency: navigator.hardwareConcurrency || 0,
+    deviceMemory: navigator.deviceMemory || 'unknown',
+    
+    // Canvas and WebGL
+    canvas: canvasData.substring(0, 150),
+    webgl: getWebGLFingerprint(),
+    
+    // Plugins
+    plugins: Array.from(navigator.plugins || []).map(p => p.name).join(','),
+    
+    // Additional identifiers
+    cookieEnabled: navigator.cookieEnabled,
+    doNotTrack: navigator.doNotTrack || 'unknown'
+  };
+
+  return JSON.stringify(fingerprint);
+}
+
+// Get or create fingerprint
+// Get or create fingerprint
+function getOrCreateFingerprint() {
+  // Detect browser first
+  const getBrowserName = () => {
+    const ua = navigator.userAgent;
+    if (ua.includes('Edg')) return 'Edge';
+    if (ua.includes('Chrome')) return 'Chrome';
+    if (ua.includes('Firefox')) return 'Firefox';
+    if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+    return 'Other';
+  };
+
+  const browserName = getBrowserName();
+  const storageKey = `browser_fingerprint_${browserName}`; // Different key per browser
+  
+  let fingerprint = localStorage.getItem(storageKey);
+  
+  if (!fingerprint) {
+    fingerprint = generateBrowserFingerprint();
+    localStorage.setItem(storageKey, fingerprint);
+    console.log(`Generated NEW fingerprint for ${browserName}`);
+  } else {
+    console.log(`Using EXISTING fingerprint for ${browserName}`);
+  }
+  
+  return fingerprint;
+}
   useEffect(() => {
+    const fingerprint = getOrCreateFingerprint();
+    // DEBUG: Log the fingerprint
+  console.log('=== FINGERPRINT DEBUG ===');
+  console.log('Raw fingerprint:', fingerprint);
+  console.log('Fingerprint length:', fingerprint.length);
+  console.log('Browser:', navigator.userAgent.includes('Edg') ? 'Edge' : 
+              navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Other');
+  console.log('========================');
     const ws = new WebSocket('ws://localhost:3000');
 
     ws.onopen = () => {
-      console.log('WebSocket connected');
+      console.log('WebSocket connected - initializing session');
       setQrStatus('connecting');
+      
+      // Send fingerprint to initialize session
+      ws.send(JSON.stringify({
+        type: 'init',
+        fingerprint: fingerprint
+      }));
     };
 
     ws.onmessage = (event) => {
@@ -403,6 +527,14 @@ console.log('Original phone:', contact.phone, '→ Formatted:', formattedPhone);
           setQrCode(data.qr);
           setQrStatus('connecting');
           addLog('QR Code received. Please scan with WhatsApp.', 'info');
+          break;
+        case 'session-created':
+          console.log('New session created:', data.sessionId);
+          addLog(`Session created: ${data.sessionId}`, 'success');
+          break;
+        case 'session-restored':
+          console.log('Session restored:', data.sessionId);
+          addLog(`Session restored: ${data.sessionId}`, 'success');
           break;
         case 'ready':
           setQrStatus('connected');
