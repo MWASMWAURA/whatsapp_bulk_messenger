@@ -622,9 +622,15 @@ useEffect(() => {
           break;
         case 'error':
           console.error('Error:', data.message);
+          // Only show errors that aren't normal status updates
+        if (!data.message.includes('desconnectedMobile') && 
+            !data.message.includes('notLogged')) {
           addLog(`Error: ${data.message}`, 'error');
           setQrStatus('error');
-          break;
+        }
+        break;
+        default:
+        console.log('❓ Unknown message type:', data.type);
       }
     };
 
