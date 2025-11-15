@@ -220,7 +220,7 @@ const [tableColumns, setTableColumns] = useState(() => {
 
   useEffect(() => {
   // Import table data to Excel spreadsheet
-  const newCells: { [key: string]: string } = { ...excelCells };
+  const newCells: { [key: string]: string } = {};
 
   // Clear existing data first
   Object.keys(newCells).forEach(key => {
