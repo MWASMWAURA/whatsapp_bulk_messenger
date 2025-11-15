@@ -233,10 +233,13 @@ export default function FolderDemo() {
   };
 
   const handleDataImported = (data: TableData[], columns: ColumnDef[]) => {
-    setTableData(data);
-    setTableColumns(columns);
-    setShowExcelView(true);
-  };
+  // Store in session storage so spreadsheet page can access it
+  sessionStorage.setItem('importedTableData', JSON.stringify(data));
+  sessionStorage.setItem('importedTableColumns', JSON.stringify(columns));
+  
+  // Navigate to spreadsheet page
+  window.location.href = '/spreadsheet';
+};
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Header with logo */}

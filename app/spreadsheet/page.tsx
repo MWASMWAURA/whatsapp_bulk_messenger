@@ -185,20 +185,39 @@ export default function IntegratedContentManagement() {
     },
   ];
 
-  const tableData = [
+  // Get table data from session storage or use trial data
+const [tableData, setTableData] = useState(() => {
+  if (typeof window !== 'undefined') {
+    const stored = sessionStorage.getItem('importedTableData');
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  }
+  // Trial data as fallback
+  return [
     { name: 'John Doe', phone: '+1234567890', email: 'john@example.com', title: 'Mr.' },
     { name: 'Jane Smith', phone: '+0987654321', email: 'jane@example.com', title: 'Ms.' },
     { name: 'Alice Johnson', phone: '+1122334455', email: 'alice@example.com', title: 'Dr.' },
     { name: 'Bob Wilson', phone: '+5566778899', email: 'bob@example.com', title: 'Mr.' },
     { name: 'Emma Davis', phone: '+9988776655', email: 'emma@example.com', title: 'Mrs.' },
   ];
-  
-  const tableColumns = [
+});
+
+const [tableColumns, setTableColumns] = useState(() => {
+  if (typeof window !== 'undefined') {
+    const stored = sessionStorage.getItem('importedTableColumns');
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  }
+  // Trial columns as fallback
+  return [
     { accessorKey: 'name', header: 'Name' },
     { accessorKey: 'phone', header: 'Phone' },
     { accessorKey: 'email', header: 'Email' },
     { accessorKey: 'title', header: 'Title' },
   ];
+});
 
   useEffect(() => {
     const newCells = {};
@@ -217,7 +236,7 @@ export default function IntegratedContentManagement() {
       });
     });
     setExcelCells(newCells);
-  }, []);
+  }, [tableData, tableColumns]); // Re-run when data changes
 
   const availableColumns = useMemo(() => {
     const cols = [];

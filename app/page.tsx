@@ -114,11 +114,13 @@ export default function HomePage() {
   const currentPolicy = policies.find(p => p.id === currentPolicyPage);
 
   const handleDataImported = (data: TableData[], columns: ColumnDef[]) => {
-    setTableData(data);
-    setTableColumns(columns);
-    // Navigate to spreadsheet page
-    window.location.href = '/spreadsheet';
-  };
+  // Store in session storage so spreadsheet page can access it
+  sessionStorage.setItem('importedTableData', JSON.stringify(data));
+  sessionStorage.setItem('importedTableColumns', JSON.stringify(columns));
+  
+  // Navigate to spreadsheet page
+  window.location.href = '/spreadsheet';
+};
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -232,21 +234,13 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => {
-                  setTableData([
-                    { name: 'John Doe', phone: '+1234567890', email: 'john@example.com' },
-                    { name: 'Jane Smith', phone: '+0987654321', email: 'jane@example.com' },
-                    { name: 'Alice Johnson', phone: '+1122334455', email: 'alice@example.com' },
-                    { name: 'Bob Wilson', phone: '+5566778899', email: 'bob@example.com' },
-                    { name: 'Emma Davis', phone: '+9988776655', email: 'emma@example.com' },
-                  ]);
-                  setTableColumns([
-                    { accessorKey: 'name', header: 'Name' },
-                    { accessorKey: 'phone', header: 'Phone' },
-                    { accessorKey: 'email', header: 'Email' },
-                  ]);
-                  // Navigate to spreadsheet page
-                  window.location.href = '/spreadsheet';
-                }}
+                  // Clear any uploaded data from session storage
+    sessionStorage.removeItem('importedTableData');
+    sessionStorage.removeItem('importedTableColumns');
+    
+    // Navigate to spreadsheet page (it will load trial data automatically)
+    window.location.href = '/spreadsheet';
+  }}
                 className="bg-white text-green-600 px-6 py-3 md:px-8 md:py-4 rounded-full font-semibold hover:bg-green-50 transition-all text-sm md:text-base shadow-xl hover:shadow-2xl transform hover:scale-105"
               >
                 Start Free Trial
