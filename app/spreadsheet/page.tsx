@@ -542,7 +542,9 @@ useEffect(() => {
   console.log('Browser:', navigator.userAgent.includes('Edg') ? 'Edge' : 
               navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Other');
   console.log('========================');
-    const ws = new WebSocket('ws://localhost:3000');
+    // Get WebSocket URL from environment variable
+  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000';
+    const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       console.log('WebSocket connected - initializing session');
