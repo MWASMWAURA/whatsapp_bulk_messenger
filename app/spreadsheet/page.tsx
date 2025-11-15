@@ -516,6 +516,23 @@ function getOrCreateFingerprint() {
   
   return fingerprint;
 }
+
+// Handle page visibility changes
+useEffect(() => {
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      console.log('📱 Page hidden - connection may be maintained');
+    } else {
+      console.log('📱 Page visible - connection active');
+    }
+  };
+
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  
+  return () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  };
+}, []);
   useEffect(() => {
     const fingerprint = getOrCreateFingerprint();
     // DEBUG: Log the fingerprint
@@ -599,9 +616,13 @@ function getOrCreateFingerprint() {
     
     setWs(ws);
 
-    return () => ws.close();
-  }, []);
-
+    return () => {
+    console.log('🧹 Cleaning up WebSocket connection');
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.close();
+    }
+  };
+}, []);
   const handleExcelCellChange = (row, col, value) => {
     setExcelCells(prev => ({
       ...prev,
